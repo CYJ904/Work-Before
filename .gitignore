@@ -1,3 +1,6 @@
 *.un~
+*.swp
 
 .tags
+
+__pycache__
