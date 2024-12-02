@@ -76,7 +76,7 @@ filters_sellers = {
         "seller_state": None
         }
 for name, status in zip(database_config['table_name'], table_list_checkbox):
-    if name == 'geolocation':
+    if name == 'geolocation' and status:
         geolocation_zip_code_prefix_list = connector.get_single_unique(name, "geolocation_zip_code_prefix").astype(int).sort_values().astype(str).tolist()
 
         geolocation_latitude_min, geolocation_latitude_max =connector.get_single_min_max(name, "geolocation_lat")
@@ -112,19 +112,19 @@ for name, status in zip(database_config['table_name'], table_list_checkbox):
                                                                              value=(geolocation_longtitude_min, geolocation_longtitude_max))
         filters_geolocation['geolocation_city'] = filters[name].selectbox(label="City", options = geolocation_city_list, index=None)
         filters_geolocation['geolocation_state'] = filters[name].selectbox(label="State", options = geolocation_state_list, index=None)
-    elif name == 'sellers':
+    elif name == 'sellers' and status:
         filters[name] = filter_area.expander(label = name)
-    elif name == 'customers':
+    elif name == 'customers' and status:
         filters[name] = filter_area.expander(label = name)
-    elif name == 'orders':
+    elif name == 'orders' and status:
         filters[name] = filter_area.expander(label = name)
-    elif name == 'order_payments':
+    elif name == 'order_payments' and status:
         filters[name] = filter_area.expander(label = name)
-    elif name == 'products':
+    elif name == 'products' and status:
         filters[name] = filter_area.expander(label = name)
-    elif name == 'order_items':
+    elif name == 'order_items' and status:
         filters[name] = filter_area.expander(label = name)
-    elif name == 'order_reviews':
+    elif name == 'order_reviews' and status:
         filters[name] = filter_area.expander(label = name)
 
 
