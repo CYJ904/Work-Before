@@ -63,7 +63,6 @@ order_reviews:
   - order_id
   - review_score
   - review_creation_date
-
 # Can only get the information about neighbour table and reference when go to farther table
 foreign_keys:
   geolocation:
