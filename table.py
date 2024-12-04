@@ -5,23 +5,53 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import sqlalchemy
+from toolz import count
 import config
 import yaml
 import utils
 from datetime import datetime, timedelta
 import itertools
 
+# Solve error about conflict renames in SELECT
+
+# Error pairs:
+# geolocation, sellers
+# geolocation, customers
+# geolocation, orders
+# geolocation, order_payments
+# geolocation, products
+# geolocation, order_items
+# geolocation, order_reviews
+# sellers, customers
+# sellers, orders
+# sellers, order_payments
+# sellers, products
+# sellers, order_reviews
+# customers, order_payments
+# customers, products
+# customers, order_items
+# customers, order_reviews
+# order_payments, products
+# order_payments, order_items
+# order_payments, order_reviews
+# products, order_reviews
+
 st.set_page_config(layout="wide", initial_sidebar_state="auto")
 with open('config.yaml', 'r') as file:
     database_config = yaml.safe_load(file)
 
-connection = st.connection('source', type='sql')
-connector = utils.Connector(connection)
+
+if "connector" not in st.session_state:
+    connection = st.connection('source', type='sql')
+    st.session_state.connector = utils.Connector(connection)
+
+connector = st.session_state.connector
 
 left_column, right_column = st.columns(spec=config.page_split, gap="small", vertical_alignment="top")
 # avoid overall scrolling
 left_column = left_column.container(height=config.page_height, border=config.show_all_edge)
 right_column = right_column.container(height=config.page_height, border=config.show_all_edge)
+right_column.write("Table")
 
 
 # confirm or rollback
@@ -390,16 +420,16 @@ if has_selected_table:
 
 # Needs a way to pass filter and data change between table page and display page
 # SQL search with filter
-if filter_area_buttom:
-    right_column.write(filters)
-    right_column.write(filters_geolocation)
-    right_column.write(filters_sellers)
-    right_column.write(filters_customers)
-    right_column.write(filters_orders)
-    right_column.write(filters_order_payments)
-    right_column.write(filters_products)
-    right_column.write(filters_order_items)
-    right_column.write(filters_order_reviews)
+# if filter_area_buttom:
+#     right_column.write(filters)
+#     right_column.write(filters_geolocation)
+#     right_column.write(filters_sellers)
+#     right_column.write(filters_customers)
+#     right_column.write(filters_orders)
+#     right_column.write(filters_order_payments)
+#     right_column.write(filters_products)
+#     right_column.write(filters_order_items)
+#     right_column.write(filters_order_reviews)
 
 # right_column.write(filters)
 # right_column.write(filters_geolocation)
@@ -441,6 +471,12 @@ else:
     # IF geolocation in used_table, create new table customer_geolocation and sellers_geolocation
     # for replacing the city and state in the customer or sellers with the city and state in geolcoation
     query += "SELECT "
+    if 'geolocation' in used_table:
+        if len(used_table) == 1:
+            query += "geolocation.geolocation_zip_code_prefix AS geolocation_zip_code_prefix, "
+            query += "geolocation.geolocation_lat AS geolocation_lat, "
+            query += "geolocation.geolocation_city AS geolocation_city, "
+            query += "geolocation.geolocation_state AS geolocation_state, "
     if 'customers' in used_table:
         query += "customer.customer_id AS customer_id, "
         query += "customer.customer_unique_id AS customer_unique_id, "
@@ -464,7 +500,6 @@ else:
             query += "seller.seller_state AS seller_state, "
             query += "seller.seller_lat AS seller_latitude, "
             query += "seller.seller_lng AS seller_longitude, "
-
     if 'orders' in used_table:
         query += "orders.order_id AS order_id, "
         query += "orders.customer_id AS order_customer_id, "
@@ -526,90 +561,163 @@ else:
         if table not in used_table:
             used_table_full.append(table)
 
-    for i in used_table_full:
-        if i == "orders":
-            query += "orders, "
-        if i == "order_payments":
-            query += "order_payments, "
-        if i == "products":
-            query += "products, "
-        if i == "order_items":
-            query += "order_items, "
-        if i == "order_reviews":
-            query += "order_reviews, "
-        if i == "sellers":
-            if "geolocation" not in used_table_full:
-                query += "sellers AS seller, "
-            else:
-                query += "(SELECT geolocation.geolocation_zip_code_prefix AS seller_zip_code_prefix, geolocation.geolocation_city AS seller_city, geolocation.geolocation_state AS seller_state, geolocation.geolocation_lat AS seller_lat, geolocation.geolocation_lng AS seller_lng, sellers.seller_id AS seller_id FROM geolocation, sellers WHERE geolocation.geolocation_zip_code_prefix = sellers.seller_zip_code_prefix) AS seller, "
-        if i == "customers":
-            if "geolocation" not in used_table_full:
-                query += "customers AS customer, "
-            else:
-                query += "(SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation, customers WHERE geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer, "
+    added_tables = []
+    special = ['geolocation', 'sellers', 'customers']
+
+    if len(used_table_full) == 1:
+        tmp_table = f"{used_table_full[0]}" if used_table_full[0] not in special[1:] else f"{used_table_full[0]} AS {used_table_full[0][:-1]}"
+        query += tmp_table
+        query += " "
+    elif (len(used_table_full) == 2): 
+        if 'geolocation' in used_table_full:
+            if 'sellers' in used_table_full:
+                query += "(SELECT geolocation.geolocation_zip_code_prefix AS seller_zip_code_prefix, geolocation.geolocation_city AS seller_city, geolocation.geolocation_state AS seller_state, geolocation.geolocation_lat AS seller_lat, geolocation.geolocation_lng AS seller_lng, sellers.seller_id AS seller_id FROM geolocation INNER JOIN sellers ON geolocation.geolocation_zip_code_prefix = sellers.seller_zip_code_prefix) AS seller "
+            elif 'customers' in used_table_full:
+                query += " (SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation INNER JOIN customers ON geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer "
+        else:
+            first = f"{used_table_full[0]}" if used_table_full[0] not in special else f"{used_table_full[0]} AS {used_table_full[0][:-1]}"
+            first_table = f"{used_table_full[0]}" if used_table_full[0] not in special else f"{used_table_full[0][:-1]}"
+            second = f"{used_table_full[1]}" if used_table_full[1] not in special else f"{used_table_full[1]} AS {used_table_full[1][:-1]}"
+            second_table = f"{used_table_full[1]}" if used_table_full[1] not in special else f"{used_table_full[1][:-1]}"
+            joint_point = database_config['foreign_keys'][used_table_full[0]][used_table_full[1]]
+
+            query += f"{first} INNER JOIN {second} ON {first_table}.{joint_point['local']} = {second_table}.{joint_point['remote']} "
+    else:
+        if "sellers" in used_table_full and "geolocation" in used_table_full:
+            query += "(SELECT geolocation.geolocation_zip_code_prefix AS seller_zip_code_prefix, geolocation.geolocation_city AS seller_city, geolocation.geolocation_state AS seller_state, geolocation.geolocation_lat AS seller_lat, geolocation.geolocation_lng AS seller_lng, sellers.seller_id AS seller_id FROM geolocation INNER JOIN sellers ON geolocation.geolocation_zip_code_prefix = sellers.seller_zip_code_prefix) AS seller "
+            added_tables.append('sellers')
+            added_tables.append('geolocation')
+        elif "customers" in used_table_full and "geolocation" in used_table_full:
+            query += " (SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation INNER JOIN customers ON geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer "
+            added_tables.append('customers')
+            added_tables.append('geolocation')
+        else:
+            first_table = used_table_full[0]
+            start = f"{first_table}" if first_table not in special else f"{first_table} AS {first_table[:-1]}"
+            query += f"{start} "
+            added_tables.append(first_table)
+
+        # print(added_tables, used_table, used_table_full)
+
+        all_added = False
+        loop_limit = 20
+        while not(all_added):
+            for i in used_table_full:
+                is_added = False
+                if i not in added_tables:
+                    for j in added_tables:
+                        bridge = utils.bridge_tables(i, j)
+                        if len(bridge) == 0 and j != "geolocation":
+                            if i == "customers" and "geolocation" in added_tables:
+                                query += "INNER JOIN (SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation INNER JOIN customers ON geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer "
+                                # new_table = f"{i}" if i not in special else f"{i} AS {i[:-1]}"
+                                # added_table  = f"{j}" if j not in special else f"{j} AS {j[:-1]}"
+                                joint_point = database_config['foreign_keys'][i][j]
+
+                                query += f"ON customer.{joint_point['local']} = {j}.{joint_point['remote']} "
+                                added_tables.append(i)
+                            else:
+                                new_long = f"{i}" if i not in special else f"{i} AS {i[:-1]}"
+                                new_table = f"{i}" if i not in special else f"{i[:-1]}"
+                                added_long = f"{j}" if j not in special else f"{j} AS {j[:-1]}"
+                                added_table  = f"{j}" if j not in special else f"{j[:-1]}"
+                                joint_point = database_config['foreign_keys'][i][j]
+                                query += f"INNER JOIN {new_long} ON {new_table}.{joint_point['local']} = {added_table}.{joint_point['remote']} "
+                                added_tables.append(i)
+                            is_added = True
+                            break 
+                        else:
+                            pass
+                if is_added:
+                    break 
+
+            counter = 0
+            problem = []
+            for i in used_table_full:
+                if i in added_tables:
+                    counter += 1
+                else:
+                    problem.append(i)
+            # print(counter, len(used_table_full), problem, used_table_full)
+            if counter == len(used_table_full):
+                all_added=True
+
+            loop_limit -= 1
+            if loop_limit == 0:
+                break
+                
+                
 
 
-    # clean last comma
-    query = query[:-2]
-    query += " "
 
     # WHERE 
-    query += "WHERE "
+    query += "WHERE " 
 
-    # Add matching first
-    special = ['geolocation', 'sellers', 'customers']
-    for start, end in list(itertools.combinations(used_table_full, 2)):
-        # if (start not in special) and (end not in special): 
-        #     joint_point = database_config['foreign_keys'][start][end]
-        #     if joint_point == dict:
-        #         query += f"{start}.{joint_point['local']} = {end}.{joint_point['remote']} AND "
-        # if (start in special) and (end not in special):
-        #     # end == orders (customers) or order_items (sellers)
-        #     joint_point = database_config['foreign_keys'][start][end]
-        #     if joint_point == dict:
-        #         query += f"{start[:-1]}.{joint_point['local']} = {end}.{joint_point['remote']} AND "
-
-        # if (start not in special) and (end in special):
-        #     # start == orders (customers) or order_items (sellers)
-        #     joint_point = database_config['foreign_keys'][start][end]
-        #     if joint_point == dict:
-        #         query += f"{start}.{joint_point['local']} = {end[:-1]}.{joint_point['remote']} AND "
-
-        # if (start in special) and (end in special):
-        #     print("There it is triggered")
-        #     pass
-
-        joint_point = database_config['foreign_keys'][start][end]
-        if joint_point == dict:
-            query += f"{start if start not in special else start[:-1]}.{joint_point['local']} = {end if end not in special else end[:-1]}.{joint_point['remote']} AND "
             
     # Add filter
     for name in used_table:
         if name == "geolocation":
-            key = used_filters[name]['geolocation_zip_code_prefix']
-            if key is not None:
-                query += f"customer.customer_zip_code_prefix = '{key}' AND "
-                query += f"seller.seller_zip_code_prefix = '{key}' AND "
-            key = used_filters[name]['geolocation_lat']
-            if key[0] <= key[1]:
-                query += f"customer.customer_lat BETWEEN {key[0]} AND {key[1]} AND "
-                query += f"seller.seller_lat BETWEEN {key[0]} AND {key[1]} AND "
-            elif key[0] > key[1]:
-                query += f"customer.customer_lat BETWEEN {key[1]} AND {key[0]} AND "
-                query += f"seller.seller_lat BETWEEN {key[1]} AND {key[0]} AND "
-            key = used_filters[name]['geolocation_lng']
-            if key[0] <= key[1]:
-                query += f"customer.customer_lng BETWEEN {key[0]} AND {key[1]} AND "
-                query += f"seller.seller_lng BETWEEN {key[0]} AND {key[1]} AND "
-            elif key[0] > key[1]:
-                query += f"customer.customer_lng BETWEEN {key[1]} AND {key[0]} AND "
-                query += f"seller.seller_lng BETWEEN {key[1]} AND {key[0]} AND "
-            key = used_filters[name]['geolocation_city']
-            if key is not None:
-                query += f"customer.customer_city = '{key}' AND "
-            key = used_filters[name]['geolocation_state']
-            if key is not None:
-                query += f"customer.customer_state = '{key}' AND "
+            if "customers" not in used_table_full and "sellers" not in used_table_full:
+                key = used_filters[name]['geolocation_zip_code_prefix']
+                if key is not None:
+                    query += f"geolocation.geolocation_zip_code_prefix = '{key}' AND "
+                key = used_filters[name]['geolocation_lat']
+                if key[0] <= key[1]:
+                    query += f"geolocation.geolocation_lat BETWEEN {key[0]} AND {key[1]} AND "
+                elif key[0] > key[1]:
+                    query += f"geolocation.geolocation_lat BETWEEN {key[1]} AND {key[0]} AND "
+                key = used_filters[name]['geolocation_lng']
+                if key[0] <= key[1]:
+                    query += f"geolocation.geolocation_lng BETWEEN {key[0]} AND {key[1]} AND "
+                elif key[0] > key[1]:
+                    query += f"geolocation.geolocation_lng BETWEEN {key[1]} AND {key[0]} AND "
+                key = used_filters[name]['geolocation_city']
+                if key is not None:
+                    query += f"geolocation.geolocation_city = '{key}' AND "
+                key = used_filters[name]['geolocation_state']
+                if key is not None:
+                    query += f"geolocation.geolocation_state = '{key}' AND "
+            else:
+                if "customers" in used_table_full:
+                    key = used_filters[name]['geolocation_zip_code_prefix']
+                    if key is not None:
+                        query += f"customer.customer_zip_code_prefix = '{key}' AND "
+                    key = used_filters[name]['geolocation_lat']
+                    if key[0] <= key[1]:
+                        query += f"customer.customer_lat BETWEEN {key[0]} AND {key[1]} AND "
+                    elif key[0] > key[1]:
+                        query += f"customer.customer_lat BETWEEN {key[1]} AND {key[0]} AND "
+                    key = used_filters[name]['geolocation_lng']
+                    if key[0] <= key[1]:
+                        query += f"customer.customer_lng BETWEEN {key[0]} AND {key[1]} AND "
+                    elif key[0] > key[1]:
+                        query += f"customer.customer_lng BETWEEN {key[1]} AND {key[0]} AND "
+                    key = used_filters[name]['geolocation_city']
+                    if key is not None:
+                        query += f"customer.customer_city = '{key}' AND "
+                    key = used_filters[name]['geolocation_state']
+                    if key is not None:
+                        query += f"customer.customer_state = '{key}' AND "
+                if "sellers" in used_table_full:
+                    key = used_filters[name]['geolocation_zip_code_prefix']
+                    if key is not None:
+                        query += f"seller.seller_zip_code_prefix = '{key}' AND "
+                    key = used_filters[name]['geolocation_lat']
+                    if key[0] <= key[1]:
+                        query += f"seller.seller_lat BETWEEN {key[0]} AND {key[1]} AND "
+                    elif key[0] > key[1]:
+                        query += f"seller.seller_lat BETWEEN {key[1]} AND {key[0]} AND "
+                    key = used_filters[name]['geolocation_lng']
+                    if key[0] <= key[1]:
+                        query += f"seller.seller_lng BETWEEN {key[0]} AND {key[1]} AND "
+                    elif key[0] > key[1]:
+                        query += f"seller.seller_lng BETWEEN {key[1]} AND {key[0]} AND "
+                    key = used_filters[name]['geolocation_city']
+                    if key is not None:
+                        query += f"seller.seller_city = '{key}' AND "
+                    key = used_filters[name]['geolocation_state']
+                    if key is not None:
+                        query += f"seller.seller_state = '{key}' AND "
         if name == "sellers":
             key = used_filters[name]['seller_id']
             if key is not None:
@@ -799,20 +907,43 @@ else:
                     query += f"order_reviews.review_creation_date BETWEEN '{key[1].strftime(config.timefstr['short'])}' AND '{key[0].strftime(config.timefstr['short'])}' AND "
 
     # clean last AND
-    query = query[:-4]
+    # query = query[:-4]
+    if query.strip().endswith("AND"):
+        query = query.rstrip()[:-3].rstrip()
+    if query.strip().endswith("WHERE"):
+        query = query.rstrip()[:-5].rstrip()
 
     # end
     query += ";"
 
-    result = connector.query(query)
-    right_column.write(query)
-    right_column.write(result)
+    if "result" not in st.session_state:
+        st.session_state.result = ""
 
+    if filter_area_buttom:
+        # result = connector.query(query)
+        # st.session_state.result = result
+        st.session_state.result = query
 
-right_column.write(filters_orders['order_approved_at'])
-right_column.write(type(filters_orders['order_approved_at'][0]))
+    right_column.write(st.session_state.result)
 
 # Solving behavior: Add 
+
+# st.dialog
+# st.tab
+
+stack = []
+
+@st.dialog("Test", width="large")
+def add_item(stack):
+    st.tabs(['select1','select2'])
+    dialog_submit = st.button("Submit")
+    if dialog_submit:
+        return stack.append("test")
+
+if buttom_table_add:
+    stack = add_item(stack)
+
+right_column.write(stack)
 
 # Solving behavior: Delete
 
