@@ -139,7 +139,9 @@ foreign_keys:
     order_reviews: order_items
   order_items:
     geolocation: orders # [customer] or seller
-    sellers: products
+    sellers:
+      local: seller_id
+      remote: seller_id
     customers: orders
     orders:
       local: order_id

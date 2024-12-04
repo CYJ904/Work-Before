@@ -118,6 +118,29 @@ class Connector():
         pass
 
 
+def bridge_tables(start_table, end_table):
+    if start_table == end_table:
+        return None
+    with open('config.yaml', 'r') as file:
+        dictionary = yaml.safe_load(file)
+    dictionary = dictionary['foreign_keys']
+    needed_tables = []
+    start = start_table
+    end = end_table
+    connected = False
+    while not connected:
+        bridge = dictionary[start][end]
+        if type(bridge) == dict:
+            connected = True
+        else: # type(bridge) == str
+            start = bridge
+            needed_tables.append(start)
+
+    return needed_tables
+
+
+
+
 
 # connection = st.connection('source', type='sql')
 # connector = Connector(connection=connection)

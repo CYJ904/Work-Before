@@ -6,5 +6,5 @@ pages = [
         st.Page("display.py", default=False, title="display")
         ]
 
-pg = st.navigation(pages)
+pg = st.navigation(pages, expanded=False)
 pg.run()
