@@ -12,30 +12,57 @@ import yaml
 import utils
 from datetime import datetime, timedelta
 import itertools
+import string
 
-# Solve error about conflict renames in SELECT
-
-# Error pairs:
-# geolocation, sellers
-# geolocation, customers
-# geolocation, orders
-# geolocation, order_payments
-# geolocation, products
-# geolocation, order_items
-# geolocation, order_reviews
-# sellers, customers
-# sellers, orders
-# sellers, order_payments
-# sellers, products
-# sellers, order_reviews
-# customers, order_payments
-# customers, products
-# customers, order_items
-# customers, order_reviews
-# order_payments, products
-# order_payments, order_items
-# order_payments, order_reviews
-# products, order_reviews
+#   - customer_city
+#   - customer_id
+#   - customer_state
+#   - customer_unique_id
+#   - customer_zip_code_prefix
+#   - freight_value
+#   - geolocation_city
+#   - geolocation_lat
+#   - geolocation_lng
+#   - geolocation_state
+#   - geolocation_zip_code_prefix
+#   - order_approved_at
+#   - order_delivered_carrier_date
+#   - order_delivered_customer_date
+#   - order_estimated_delivery_date
+#   - order_id
+#   - order_item_id
+#   - order_purchase_timestamp
+#   - order_status
+#   - payment_installments
+#   - payment_sequential
+#   - payment_type
+#   - payment_value
+#   - price
+#   - product_category_name
+#   - product_description_length
+#   - product_height_cm
+#   - product_id
+#   - product_length_cm
+#   - product_name_length
+#   - product_photos_qty
+#   - product_weight_g
+#   - product_width_cm
+#   - review_creation_date
+#   - review_id
+#   - review_score
+#   - seller_city
+#   - seller_id
+#   - seller_state
+#   - seller_zip_code_prefix
+#   - shipping_limit_date
+# customers:
+# geolocation:
+# order_items:
+# order_payments:
+# order_reviews:
+# orders:
+# products:
+# sellers:
 
 st.set_page_config(layout="wide", initial_sidebar_state="auto")
 with open('config.yaml', 'r') as file:
@@ -45,7 +72,7 @@ with open('config.yaml', 'r') as file:
 if "connector" not in st.session_state:
     connection = st.connection('source', type='sql')
     st.session_state.connector = utils.Connector(connection)
-    st.seller_state.connector.start_transaction()
+    st.session_state.connector.start_transaction()
 
 if "query" not in st.session_state:
     st.session_state.query = ""
@@ -55,7 +82,9 @@ if "result" not in st.session_state:
 
 if "stack" not in st.session_state:
     st.session_state.stack = []
-    st.session_state.connector.query("START TRANSACTION;")
+
+if "data_changed" not in st.session_state:
+    st.session_state.data_changed = False
 
 
 if "map" not in st.session_state:
@@ -923,8 +952,12 @@ else:
         # st.session_state.result = query
         st.session_state.query = query
 
+    if st.session_state.data_changed == True:
+        st.session_state.data_changed = False
+        st.session_state.result = st.session_state.connector.query(st.session_state.query)
+
     if st.session_state.query == "":
-        right_column.write("Please push submit for search data.")
+        right_column.write("Please click submit for search data.")
     else:
         right_column.dataframe(st.session_state.result)
 
@@ -1113,7 +1146,7 @@ def add_data():
         key = "Estimated Delivered"
         tmp_date = st.date_input(f"{key} - Date")
         tmp_time = None
-        data['order_delivered_customer_date']['input'] = (tmp_date, tmp_time)
+        data['order_estimated_delivery_date']['input'] = (tmp_date, tmp_time)
     # with tab_order_payments:
     if selected_dataset == "order_payments":
         data = {
@@ -1351,10 +1384,60 @@ def add_data():
             time_delivered_customer= data['order_delivered_customer_date']['input']
             time_delivered_customer= datetime.combine(time_delivered_customer[0],time_delivered_customer[1])
             time_estimated= data['order_estimated_delivery_date']['input']
-            time_estimated= datetime.combine(time_estimated[0],time_estimated[1])
+            time_estimated= datetime.combine(time_estimated[0],datetime.min.time())
             if not ((time_purchase < time_approved and time_approved < time_delivered_carrier and time_delivered_carrier < time_delivered_customer) and (time_purchase < time_approved < time_estimated)):
-                st.error("Your input about different is impossible generally.")
+                st.error("Your input about multiple recorded time is impossible generally.")
                 disable_button = True
+
+        for key in keys:
+            if "_id" in key:
+                if len(data[key]['input'].strip()) != 32:
+                    st.error("You must make ID 32 characters long")
+                    disable_button = True
+                if " " in data[key]['input']:
+                    st.error("No space in ID")
+                    disable_button = True
+
+                for i in range(len(data[key]['input'])):
+                    if (data[key]['input'][i] not in string.ascii_lowercase) and (data[key]['input'][i] not in string.digits):
+                        st.error("ID can only be constructed by letters in lower case or digits")
+                        disable_button = True
+                        break
+
+        for key in keys:
+            if "state" in key:
+                if len(data[key]['input'].strip()) != 2:
+                    st.error("You must make state 2 characters long without space")
+                    disable_button = True
+
+                for i in range(len(data[key]['input'])):
+                    if data[key]['input'][i] not in string.ascii_uppercase:
+                        st.error("Sate Code can only be constructed by letters in upper case")
+                        disable_button = True
+                        break
+
+        for key in keys:
+            if "city" in key:
+                for i in range(len(data[key]['input'])):
+                    if data[key]['input'][i] in string.digits:
+                        st.error("City name shouldn't includes digit.")
+                        disable_button = True
+                        break
+
+        for key in keys:
+            if "zip" in key:
+                if ((len(data[key]['input'].strip()) != 4) or (len(data[key]['input'].strip()) != 5)):
+                    st.error("You must make Zip Code 4 characters or 5 characters long without space")
+                    disable_button = True
+
+                for i in range(len(data[key]['input'])):
+                    if data[key]['input'][i] not in string.digits:
+                        st.error("zip code can only be constructed by digits")
+                        disable_button = True
+                        break
+
+
+
 
 
     dialog_submit = st.button("Submit", disabled=disable_button)
@@ -1367,7 +1450,7 @@ def add_data():
             if tmp_value is not None:
                 key_side += key
                 key_side += ", "
-                value_side += utils.input_preprocessing(value)
+                value_side += utils.input_preprocessing(tmp_value)
                 value_side += ", "
         # remove last comma
         key_side = key_side[:-2]
@@ -1376,6 +1459,7 @@ def add_data():
         connector.execute(final_query)
         connector.checkpoint_add(checkpoint="prepared_name")
         st.session_state.stack.append(prepared_name)
+        st.session_state.data_changed = True
         st.rerun()
 
 @st.dialog("Delete", width="large")
@@ -1532,7 +1616,7 @@ def delete_data():
         data['order_approved_at']['input'] = st.slider("Approved time", min_value=data['order_approved_at']['limit'][0], max_value=data['order_approved_at']['limit'][1], value=data['order_approved_at']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
         data['order_delivered_carrier_date']['input'] = st.slider("Delivered Carrier Date", min_value=data['order_delivered_carrier_date']['limit'][0], max_value=data['order_delivered_carrier_date']['limit'][1], value=data['order_delivered_carrier_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
         data['order_delivered_customer_date']['input'] = st.slider("Delivered Customer Date", min_value=order_delivered_customer_date_min, max_value=order_delivered_customer_date_max, value=(order_delivered_customer_date_min, order_delivered_customer_date_max), step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_delivered_customer_date']['input'] = st.slider("Estimated Delivery Date", min_value=data['order_delivered_customer_date']['limit'][0], max_value=data['order_delivered_customer_date']['limit'][1], value=data['order_delivered_customer_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+        data['order_estimated_delivery_date']['input'] = st.slider("Estimated Delivery Date", min_value=data['order_estimated_delivery_date']['limit'][0], max_value=data['order_estimated_delivery_date']['limit'][1], value=data['order_estimated_delivery_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
     with tab_order_payments:
         data = {
                 "name": "order_payments", 
