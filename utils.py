@@ -6,6 +6,8 @@ import yaml
 import random
 import string
 import config
+import datetime
+import sqlalchemy
 
 
 class Connector():
@@ -32,9 +34,6 @@ class Connector():
             self.relations[name] = self.database_config['foreign_keys'][name]
 
     # requests some information
-    def run(self):
-        pass
-
     def get_single_min(self, table_name, key_name, filters=None):
         query=f"""
         SELECT MIN({key_name}) AS min_amount
@@ -82,6 +81,27 @@ class Connector():
     def query(self, sql_query):
         return self.connection.query(sql_query)
 
+    def execute(self, sql_query):
+        return self.connection.session.execute(sqlalchemy.text(sql_query))
+
+    def start_transaction(self):
+        self.connection.session.execute(sqlalchemy.text("BEGIN"))
+
+    def rollback_full(self):
+        self.connection.session.execute(sqlalchemy.text("ROLLBACK"))
+
+    def checkpoint_rollback(self, checkpoint):
+        self.connection.session.execute(sqlalchemy.text(f"ROLLBACK TO {checkpoint}"))
+
+    def checkpoint_add(self, checkpoint):
+        self.connection.session.execute(sqlalchemy.text(f"SAVEPOINT {checkpoint}"))
+
+    def commit(self):
+        self.connection.session.execute(sqlalchemy.text("COMMIT"))
+
+    def run(self):
+        pass
+
     def data_add(self, table_name, data):
         pass
 
@@ -116,6 +136,23 @@ def generate_random_string(length=config.length):
     characters = string.ascii_letters + string.digits + "_"
     return "".join(random.choices(characters, k=length))
 
+
+def input_preprocessing(input):
+    # no process over string
+    if isinstance(input, str):
+        return f"'{input}'"
+    elif isinstance(input, int):
+        return str(input)
+    elif isinstance(input, float):
+        return str(input)
+    elif isinstance(input, tuple):
+        if input[1] is None:
+            # short version
+            return f"'{input[0].strftime(config.time['form']['short'])}'"
+        else:
+            #  long version
+            tmp = datetime.datetime.combine(input[0], input[1])
+            return f"'{tmp.strftime(config.time['form']['long'])}'"
 
 
 
