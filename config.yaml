@@ -181,6 +181,61 @@ primary_keys:
   order_reviews:
     - order_id
     - review_id
+referencing_keys:
+  geolocation: null
+  sellers:
+    local: 
+      - seller_zip_code_prefix
+    table: 
+      - geolocation
+    key: 
+      - geolocation_zip_code_prefix
+  customers:
+    local: 
+      - customer_zip_code_prefix
+    table: 
+      - geolocation
+    key: 
+      - geolocation_zip_code_prefix
+  orders:
+    local:
+      - customer_id
+    table:
+      - customers
+    key:
+      - customer_id
+  order_payments:
+    local:
+      - order_id
+    table:
+      - orders
+    key:
+      - order_id
+  products: null
+  order_items:
+    local:
+      - order_id
+      - product_id
+      - seller_id
+    table:
+      - orders
+      - products
+      - sellers
+    key:
+      - order_id
+      - product_id
+      - seller_id
+  order_reviews:
+    local:
+      - order_id
+    table:
+      - orders
+    key:
+      - order_id
+
+
+
+
 
 # geolocation
 # geolocation_zip_code_prefix CHAR(5),
