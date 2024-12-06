@@ -154,6 +154,45 @@ def input_preprocessing(input):
             tmp = datetime.datetime.combine(input[0], input[1])
             return f"'{tmp.strftime(config.time['form']['long'])}'"
 
+def search_preprocessing(name, input):
+    # no process over string
+    if isinstance(input, str):
+        return f"{name} = '{input}'"
+    elif isinstance(input, int):
+        return f"{name} = {input}"
+    elif isinstance(input, float):
+        return f"{name} = {input}"
+    elif isinstance(input, tuple):
+        if isinstance(input[0], str):
+            if input[0] == input[1]:
+                return f"{name} = '{input[0]}'"
+            else:
+                return f"{name} BETWEEN '{input[0]}' AND '{input[1]}'"
+        elif isinstance(input[0], int):
+            if input[0] == input[1]:
+                return f"{name} = {input[0]}"
+            else:
+                return f"{name} BETWEEN {input[0]} AND {input[1]}"
+        elif isinstance(input[0], float):
+            if input[0] == input[1]:
+                return f"{name} = {input[0]}"
+            else:
+                return f"{name} BETWEEN {input[0]} AND {input[1]}"
+        elif isinstance(input[0], datetime.date):
+            if input[0] == input[1]:
+                return f"{name} = {input[0].strftime(config.timefstr['short'])}"
+            else:
+                return f"{name} BETWEEN {input[0].strftime(config.timefstr['short'])} AND {input[1].strftime(config.timefstr['short'])}"
+        elif isinstance(input[0], datetime.datetime):
+            if input[0] == input[1]:
+                return f"{name} = {input[0].strftime(config.timefstr['long'])}"
+            else:
+                return f"{name} BETWEEN {input[0].strftime(config.timefstr['long'])} AND {input[1].strftime(config.timefstr['long'])}"
+        else:
+            return None
+    else:
+        return None
+
 
 
 # connection = st.connection('source', type='sql')
