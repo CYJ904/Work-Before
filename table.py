@@ -175,7 +175,7 @@ if has_selected_table:
 
     for name, status in zip(database_config['table_name'], table_list_checkbox):
         if name == 'geolocation' and status:
-            geolocation_zip_code_prefix_list = connector.get_single_unique(name, "geolocation_zip_code_prefix").astype(int).sort_values().astype(str).tolist()
+            geolocation_zip_code_prefix_list = connector.get_single_unique(name, "geolocation_zip_code_prefix").astype(str).tolist()
 
             geolocation_latitude_min, geolocation_latitude_max = connector.get_single_min_max(name, "geolocation_lat")
             geolocation_latitude_min = float(geolocation_latitude_min.iloc[0])
@@ -286,7 +286,7 @@ if has_selected_table:
 
             payment_type_list = connector.get_single_unique(name, 'payment_type').astype(str).tolist()
 
-            payment_installments_list = connector.get_single_unique(name, 'payment_installments').astype(int).sort_values().astype(str).tolist()
+            payment_installments_list = connector.get_single_unique(name, 'payment_installments').astype(str).tolist()
 
             payment_value_min, payment_value_max = connector.get_single_min_max(name, 'payment_value')
             payment_value_min = float(payment_value_min.iloc[0])
@@ -641,15 +641,17 @@ else:
                 if key is not None:
                     query += f"geolocation.geolocation_zip_code_prefix = '{key}' AND "
                 key = used_filters[name]['geolocation_lat']
-                if key[0] <= key[1]:
-                    query += f"geolocation.geolocation_lat BETWEEN {key[0]} AND {key[1]} AND "
-                elif key[0] > key[1]:
-                    query += f"geolocation.geolocation_lat BETWEEN {key[1]} AND {key[0]} AND "
+                if key is not None:
+                    if key[0] <= key[1]:
+                        query += f"geolocation.geolocation_lat BETWEEN {key[0]} AND {key[1]} AND "
+                    elif key[0] > key[1]:
+                        query += f"geolocation.geolocation_lat BETWEEN {key[1]} AND {key[0]} AND "
                 key = used_filters[name]['geolocation_lng']
-                if key[0] <= key[1]:
-                    query += f"geolocation.geolocation_lng BETWEEN {key[0]} AND {key[1]} AND "
-                elif key[0] > key[1]:
-                    query += f"geolocation.geolocation_lng BETWEEN {key[1]} AND {key[0]} AND "
+                if key is not None:
+                    if key[0] <= key[1]:
+                        query += f"geolocation.geolocation_lng BETWEEN {key[0]} AND {key[1]} AND "
+                    elif key[0] > key[1]:
+                        query += f"geolocation.geolocation_lng BETWEEN {key[1]} AND {key[0]} AND "
                 key = used_filters[name]['geolocation_city']
                 if key is not None:
                     query += f"geolocation.geolocation_city = '{key}' AND "
@@ -662,15 +664,17 @@ else:
                     if key is not None:
                         query += f"customer.customer_zip_code_prefix = '{key}' AND "
                     key = used_filters[name]['geolocation_lat']
-                    if key[0] <= key[1]:
-                        query += f"customer.customer_lat BETWEEN {key[0]} AND {key[1]} AND "
-                    elif key[0] > key[1]:
-                        query += f"customer.customer_lat BETWEEN {key[1]} AND {key[0]} AND "
+                    if key is not None:
+                        if key[0] <= key[1]:
+                            query += f"customer.customer_lat BETWEEN {key[0]} AND {key[1]} AND "
+                        elif key[0] > key[1]:
+                            query += f"customer.customer_lat BETWEEN {key[1]} AND {key[0]} AND "
                     key = used_filters[name]['geolocation_lng']
-                    if key[0] <= key[1]:
-                        query += f"customer.customer_lng BETWEEN {key[0]} AND {key[1]} AND "
-                    elif key[0] > key[1]:
-                        query += f"customer.customer_lng BETWEEN {key[1]} AND {key[0]} AND "
+                    if key is not None:
+                        if key[0] <= key[1]:
+                            query += f"customer.customer_lng BETWEEN {key[0]} AND {key[1]} AND "
+                        elif key[0] > key[1]:
+                            query += f"customer.customer_lng BETWEEN {key[1]} AND {key[0]} AND "
                     key = used_filters[name]['geolocation_city']
                     if key is not None:
                         query += f"customer.customer_city = '{key}' AND "
@@ -682,15 +686,17 @@ else:
                     if key is not None:
                         query += f"seller.seller_zip_code_prefix = '{key}' AND "
                     key = used_filters[name]['geolocation_lat']
-                    if key[0] <= key[1]:
-                        query += f"seller.seller_lat BETWEEN {key[0]} AND {key[1]} AND "
-                    elif key[0] > key[1]:
-                        query += f"seller.seller_lat BETWEEN {key[1]} AND {key[0]} AND "
+                    if key is not None:
+                        if key[0] <= key[1]:
+                            query += f"seller.seller_lat BETWEEN {key[0]} AND {key[1]} AND "
+                        elif key[0] > key[1]:
+                            query += f"seller.seller_lat BETWEEN {key[1]} AND {key[0]} AND "
                     key = used_filters[name]['geolocation_lng']
-                    if key[0] <= key[1]:
-                        query += f"seller.seller_lng BETWEEN {key[0]} AND {key[1]} AND "
-                    elif key[0] > key[1]:
-                        query += f"seller.seller_lng BETWEEN {key[1]} AND {key[0]} AND "
+                    if key is not None:
+                        if key[0] <= key[1]:
+                            query += f"seller.seller_lng BETWEEN {key[0]} AND {key[1]} AND "
+                        elif key[0] > key[1]:
+                            query += f"seller.seller_lng BETWEEN {key[1]} AND {key[0]} AND "
                     key = used_filters[name]['geolocation_city']
                     if key is not None:
                         query += f"seller.seller_city = '{key}' AND "
@@ -966,7 +972,7 @@ def add_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(int).sort_values().astype(str).tolist()
+        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(str).tolist()
         tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lat')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
@@ -1465,7 +1471,7 @@ def delete_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(int).sort_values().astype(str).tolist()
+        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(str).tolist()
         tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lat')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
@@ -1860,7 +1866,7 @@ def update_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(int).sort_values().astype(str).tolist()
+        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(str).tolist()
         tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lat')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
