@@ -109,7 +109,8 @@ sql_change = left_column.container(border=True)
 sql_change_left, sql_change_right = sql_change.columns(([1,1]))
 
 change_confirm = sql_change_left.button(label="Confirm", use_container_width=True)
-change_rollback = sql_change_right.button(label="Rollback", use_container_width=True)
+cannot_rollback = False if len(st.session_state.stack) != 0 else True
+change_rollback = sql_change_right.button(label="Rollback", use_container_width=True, disabled=cannot_rollback)
 
 # table list and data change
 table_and_change = left_column.container(border=True)
@@ -1467,6 +1468,7 @@ def delete_data():
     # Preparation
     connector = st.session_state.connector
     prepared_name = utils.generate_random_string()
+    disable_button = False # If data illegal, disable_button = True
     while prepared_name in st.session_state.stack:
         prepared_name = utils.generate_random_string()
 
@@ -1480,11 +1482,14 @@ def delete_data():
             'order_items', 
             'order_reviews'
             ]
-    tab_geolocation, tab_sellers, tab_customers, tab_orders, tab_order_payments, tab_products, tab_order_items, tab_order_reviews = st.tabs(table_name_list)
+    selected_dataset = st.radio(
+            "Choose a table:",
+            table_name_list
+            )
     data = None
 
     # Get Input
-    with tab_geolocation:
+    if selected_dataset == "geolocation":
         # Prepare storage variable
         data = {
                 "name": "geolocation",
@@ -1517,7 +1522,7 @@ def delete_data():
         data['geolocation_lng']['input'] = st.slider(label="Longtitude", min_value=data['geolocation_lng']['limit'][0], max_value=data['geolocation_lng']['limit'][1], value=data['geolocation_lng']['limit'], step=config.accuracy)
         data['geolocation_city']['input'] = st.selectbox(label="City", options = data['geolocation_city']['limit'], index=None)
         data['geolocation_state']['input'] = st.selectbox(label="State", options = data['geolocation_state']['limit'], index=None)
-    with tab_sellers:
+    if selected_dataset == "sellers":
         data = {
                 "name": "sellers",
                 "seller_id": {"input": None, "limit": None},
@@ -1540,7 +1545,7 @@ def delete_data():
         data['seller_zip_code_prefix']['input'] = st.selectbox(label="zip_code", options=data['seller_zip_code_prefix']['limit'], index = None)
         data['seller_city']['input'] = st.selectbox(label="City", options=data['seller_city']['limit'], index = None)
         data['seller_state']['input'] = st.selectbox(label="State", options=data['seller_state']['limit'], index = None)
-    with tab_customers:
+    if selected_dataset == "customers":
         data = { 
                 "name": "customers",
                 "customer_id": {"input": None, "limit": None},
@@ -1566,7 +1571,7 @@ def delete_data():
         data['customer_zip_code_prefix']['input'] = st.selectbox(label="zip_code", options=data['customer_zip_code_prefix']['limit'], index = None, key="delete_customer_zip_code_prefix")
         data['customer_city']['input'] = st.selectbox(label="City", options=data['customer_city']['limit'], index = None)
         data['customer_city']['input'] = st.selectbox(label="State", options=data['customer_state']['limit'], index = None)
-    with tab_orders:
+    if selected_dataset == "orders":
         data = {
                 "name": "orders",
                 "order_id": {"input": None, "limit": None},
@@ -1617,7 +1622,7 @@ def delete_data():
         data['order_delivered_carrier_date']['input'] = st.slider("Delivered Carrier Date", min_value=data['order_delivered_carrier_date']['limit'][0], max_value=data['order_delivered_carrier_date']['limit'][1], value=data['order_delivered_carrier_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
         data['order_delivered_customer_date']['input'] = st.slider("Delivered Customer Date", min_value=order_delivered_customer_date_min, max_value=order_delivered_customer_date_max, value=(order_delivered_customer_date_min, order_delivered_customer_date_max), step=config.time['step']['second'], format=config.time['format']['long'])
         data['order_estimated_delivery_date']['input'] = st.slider("Estimated Delivery Date", min_value=data['order_estimated_delivery_date']['limit'][0], max_value=data['order_estimated_delivery_date']['limit'][1], value=data['order_estimated_delivery_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
-    with tab_order_payments:
+    if selected_dataset == "order_payments":
         data = {
                 "name": "order_payments", 
                 "order_id": {"input": None, "limit": None}, 
@@ -1649,7 +1654,7 @@ def delete_data():
         data['payment_type']['input'] = st.selectbox(label="Payment Type", options=data['payment_type']['limit'], index = None)
         data['payment_installments']['input'] = st.selectbox(label="Payment Installments", options=data['payment_installments']['limit'], index = None)
         data['payment_value']['input'] = st.slider("Payment Value", min_value=data['payment_value']['limit'][0], max_value=data['payment_value']['limit'][1], value=data['payment_value']['limit'], step=config.concurrency)
-    with tab_products:
+    if selected_dataset == "products":
         data = {
                 "name": "products",
                 "product_id": {"input": None, "limit": None},
@@ -1715,7 +1720,7 @@ def delete_data():
         data['product_length_cm']['input'] = st.slider(label="Length in cm", min_value=data['product_length_cm']['limit'][0], max_value=data['product_length_cm']['limit'][1], value=data['product_length_cm']['limit'], step=config.integer)
         data['product_height_cm']['input'] = st.slider(label="Height in cm", min_value=data['product_height_cm']['limit'][0], max_value=data['product_height_cm']['limit'][1], value=data['product_height_cm']['limit'], step=config.integer)
         data['product_width_cm']['input'] = st.slider(label="Width in cm", min_value=data['product_width_cm']['limit'][0], max_value=data['product_width_cm']['limit'][1], value=data['product_width_cm']['limit'], step=config.integer)
-    with tab_order_items:
+    if selected_dataset == "order_items":
         data = {
                 "name": "order_items",
                 "order_id": {"input": None, "limit": None},
@@ -1756,7 +1761,7 @@ def delete_data():
         data['shipping_limit_date']['input'] = st.slider("Shipping Limit Date", min_value=data['shipping_limit_date']['limit'][0], max_value=data['shipping_limit_date']['limit'][1], value=data['shipping_limit_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
         data['price']['input'] = st.slider("Price", min_value=data['price']['limit'][0], max_value=data['price']['limit'][1], value=data['price']['limit'], step=config.concurrency)
         data['freight_value']['input'] = st.slider("Freight Value", min_value=data['freight_value']['limit'][0], max_value=data['freight_value']['limit'][1], value=data['freight_value']['limit'], step=config.concurrency)
-    with tab_order_reviews:
+    if selected_dataset == "order_reviews":
         data = {
                 "name": "order_reviews",
                 "review_id": {"input": None, "limit": None},
@@ -1787,21 +1792,687 @@ def delete_data():
         data['review_score']['input'] = st.slider("Review Score", min_value=data['review_score']['limit'][0], max_value=data['review_score']['limit'][1], value = data['review_score']['limit'], step=config.integer)
         data['review_creation_date']['input'] = st.slider("Review Creation Date", min_value=data['review_creation_date']['limit'][0], max_value=data['review_creation_date']['limit'][1], value=data['review_creation_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
 
-    value = 'delete'
-    st.write(value)
-    dialog_submit = st.button("Submit")
+    if data is None:
+        disable_button = True
+    else:
+        special = ['name']
+        keys = [key for key in data.keys() if key not in special]
+        foreign_keys = st.session_state.map['referencing_keys'][data['name']] # dict with parallel list
+        primary_keys = st.session_state.map['primary_keys'][data['name']] # list
+
+        # search target exists
+        inputted_primary_key = True
+        for key in primary_keys:
+            if (data[key]['input'] is None) or (data[key]['input'] == ""):
+                inputted_primary_key = False
+
+        if not(inputted_primary_key):
+            disable_button = True
+            st.error(f"Please at least select value for ({', '.join(primary_keys)})")
+        else:
+            record_query = f"SELECT * FROM {data['name']} WHERE "
+            for key in keys:
+                value = data[key]['input']
+                if value is not None:
+                    slice = utils.search_preprocessing(key, value)
+                    if slice is None:
+                        st.error(f"Meet an unexpected value {key}:{value}")
+                    else:
+                        record_query += slice
+                        record_query += " AND "
+            record_query = record_query[:-4]
+            record_query += ";"
+
+            record_result = connector.query(record_query)
+            if len(record_result) == 0:
+                disable_button = True
+                st.error("Searched record doesn't exists with filters")
+            else:
+                delete_query = "DELETE FROM {data['name']} WHERE "
+                for key in primary_keys:
+                    slice = utils.search_preprocessing(key, data[key]['input'])
+                    # no protection for search exact ID only.
+                    if slice is None:
+                        disable_button = True
+                        st.error("Error! Target primary key disappeared")
+                    delete_query += slice
+                    delete_query += " AND "
+                # delete last end
+                delete_query = delete_query[:-4]
+                delete_query += ";"
+
+
+
+
+    dialog_submit = st.button("Submit", disabled=disable_button)
     if dialog_submit:
-        st.session_state.stack.append(value)
+        connector.execute(delete_query)
+        connector.checkpoint_add(prepared_name)
+        st.session_state.stack.append(prepared_name)
+        st.session_state.data_changed = True
         st.rerun()
 
 @st.dialog("Update", width="large")
 def update_data():
-    st.tabs(['select1','select2'])
-    value = 'update'
-    st.write(value)
-    dialog_submit = st.button("Submit")
+
+    # Preparation
+    connector = st.session_state.connector
+    prepared_name = utils.generate_random_string()
+    disable_button = False # If data illegal, disable_button = True
+    while prepared_name in st.session_state.stack:
+        prepared_name = utils.generate_random_string()
+
+    table_name_list = [
+            'geolocation',
+            'sellers', 
+            'customers', 
+            'orders', 
+            'order_payments', 
+            'products', 
+            'order_items', 
+            'order_reviews'
+            ]
+    # tab_geolocation, tab_sellers, tab_customers, tab_orders, tab_order_payments, tab_products, tab_order_items, tab_order_reviews = st.tabs(table_name_list)
+    selected_dataset = st.radio(
+            "Choose a table:",
+            table_name_list
+            )
+    data = None
+
+    # Get Input
+    # with tab_geolocation:
+    if selected_dataset == "geolocation":
+        # Prepare storage variable
+        data = {
+                "name": "geolocation",
+                "geolocation_zip_code_prefix": {"changed": None, "input": None, "limit": None},
+                "geolocation_lat": {"changed": None, "input": None, "limit": None},
+                "geolocation_lng": {"changed": None, "input": None, "limit": None},
+                "geolocation_city": {"changed": None, "input": None, "limit": None},
+                "geolocation_state": {"changed": None, "input": None, "limit": None},
+                }
+        left_column, right_column = st.columns(2)
+        left_column.write("Original Data")
+        right_column.write("Adjusted Data")
+
+        # Load limitation
+        referencing_information = st.session_state.map['referencing_keys'][data['name']]
+        referencing_information_length = len(referencing_information) if referencing_information is not None else 0
+
+        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(int).sort_values().astype(str).tolist()
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lat')
+        tmp_min = float(tmp_min.iloc[0])
+        tmp_max = float(tmp_max.iloc[0])
+        data['geolocation_lat']['limit'] = (tmp_min, tmp_max)
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lng')
+        tmp_min = float(tmp_min.iloc[0])
+        tmp_max = float(tmp_max.iloc[0])
+        data['geolocation_lng']['limit'] = (tmp_min, tmp_max)
+        data['geolocation_city']['limit'] = connector.get_single_unique(data['name'], 'geolocation_city').astype(str).tolist()
+        data['geolocation_state']['limit'] = connector.get_single_unique(data['name'], 'geolocation_state').astype(str).tolist()
+
+        # Original data
+        data['geolocation_zip_code_prefix']['input'] = left_column.selectbox(label="Zip Code", options=data['geolocation_zip_code_prefix']['limit'], index=None)
+        data['geolocation_lat']['input'] = left_column.slider(label="Latitude", min_value=data['geolocation_lat']['limit'][0], max_value=data['geolocation_lat']['limit'][1], value=data['geolocation_lat']['limit'], step=config.accuracy)
+        data['geolocation_lng']['input'] = left_column.slider(label="Longtitude", min_value=data['geolocation_lng']['limit'][0], max_value=data['geolocation_lng']['limit'][1], value=data['geolocation_lng']['limit'], step=config.accuracy)
+        data['geolocation_city']['input'] = left_column.selectbox(label="City", options = data['geolocation_city']['limit'], index=None)
+        data['geolocation_state']['input'] = left_column.selectbox(label="State", options = data['geolocation_state']['limit'], index=None)
+
+        # New data
+        data['geolocation_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", max_chars=5)
+        data['geolocation_lat']['changed'] = right_column.number_input(label="Latitude", step=0.01)
+        data['geolocation_lng']['changed'] = right_column.number_input(label="Longtitude", step=0.01)
+        data['geolocation_city']['changed'] = right_column.text_input(label="City", max_chars=32)
+        data['geolocation_state']['changed'] = right_column.text_input(label="State", max_chars=2)
+    # with tab_sellers:
+    if selected_dataset == "sellers":
+        data = {
+                "name": "sellers",
+                "seller_id": {"changed": None, "input": None, "limit": None},
+                "seller_zip_code_prefix": {"changed": None, "input": None, "limit": None},
+                "seller_city": {"changed": None, "input": None, "limit": None},
+                "seller_state": {"changed": None, "input": None, "limit": None}
+                }
+        left_column, right_column = st.columns(2)
+        left_column.write("Original Data")
+        right_column.write("Adjusted Data")
+
+        # Load limitation
+        referencing_information = st.session_state.map['referencing_keys'][data['name']]
+        referencing_information_length = len(referencing_information) if referencing_information is not None else 0
+
+        data['seller_id']['limit'] = connector.get_single_unique(data['name'], "seller_id").astype(str).tolist()
+        data['seller_zip_code_prefix']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['seller_city']['limit'] = connector.get_single_unique(data['name'], 'seller_city').astype(str).tolist()
+        data['seller_state']['limit'] = connector.get_single_unique(data['name'], 'seller_state').astype(str).tolist()
+
+        # Original data
+        data['seller_id']['input'] = left_column.selectbox(label="ID", options=data['seller_id']['limit'], index = None)
+        data['seller_zip_code_prefix']['input'] = left_column.selectbox(label="zip_code", options=data['seller_zip_code_prefix']['limit'], index = None)
+        data['seller_city']['input'] = left_column.selectbox(label="City", options=data['seller_city']['limit'], index = None)
+        data['seller_state']['input'] = left_column.selectbox(label="State", options=data['seller_state']['limit'], index = None)
+
+
+        # New data
+        data['seller_id']['changed'] = right_column.text_input(label="ID", max_chars=32)
+        data['seller_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", key = "seller_zip_code_prefix", max_chars=5)
+        data['seller_city']['changed'] = right_column.text_input(label="City", key = "seller_city", max_chars=32)
+        data['seller_state']['changed'] = right_column.text_input(label="State", key = "seller_state", max_chars=2)
+    # with tab_customers:
+    if selected_dataset == "customers":
+        data = { 
+                "name": "customers",
+                "customer_id": {"changed": None, "input": None, "limit": None},
+                "customer_unique_id": {"changed": None, "input": None, "limit": None},
+                "customer_zip_code_prefix": {"changed": None, "input": None, "limit": None},
+                "customer_city": {"changed": None, "input": None, "limit": None},
+                "customer_state": {"changed": None, "input": None, "limit": None}
+                }
+        left_column, right_column = st.columns(2)
+        left_column.write("Original Data")
+        right_column.write("Adjusted Data")
+
+        # Load limitation
+        referencing_information = st.session_state.map['referencing_keys'][data['name']]
+        referencing_information_length = len(referencing_information) if referencing_information is not None else 0
+
+        data['customer_id']['limit'] = connector.get_single_unique(data['name'], "customer_id").astype(str).tolist()
+        data['customer_unique_id']['limit'] = connector.get_single_unique(data['name'], "customer_unique_id").astype(str).tolist()
+        data['customer_zip_code_prefix']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['customer_city']['limit'] = connector.get_single_unique(data['name'], 'customer_city').astype(str).tolist()
+        data['customer_state']['limit'] = connector.get_single_unique(data['name'], 'customer_state').astype(str).tolist()
+
+        # Original data
+        data['customer_id']['input'] = left_column.selectbox(label="ID", options=data['customer_id']['limit'], index = None)
+        data['customer_unique_id']['input'] = left_column.selectbox(label="Unique_ID", options=data['customer_unique_id']['limit'], index = None)
+        data['customer_zip_code_prefix']['input'] = left_column.selectbox(label="zip_code", options=data['customer_zip_code_prefix']['limit'], index = None, key="delete_customer_zip_code_prefix")
+        data['customer_city']['input'] = left_column.selectbox(label="City", options=data['customer_city']['limit'], index = None)
+        data['customer_city']['input'] = left_column.selectbox(label="State", options=data['customer_state']['limit'], index = None)
+
+        # New data
+        data['customer_id']['changed'] = right_column.text_input(label="Account ID", max_chars=32)
+        data['customer_unique_id']['changed'] = right_column.text_input(label="Unique ID", max_chars=32)
+        data['customer_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", key = "customer_zip_code_prefix", max_chars=5)
+        data['customer_city']['changed'] = right_column.text_input(label="City", key = "customer_city", max_chars=32)
+        data['customer_state']['changed'] = right_column.text_input(label="State", key = "customer_state", max_chars=2)
+    # with tab_orders:
+    if selected_dataset == "orders":
+        data = {
+                "name": "orders",
+                "order_id": {"changed": None, "input": None, "limit": None},
+                "customer_id": {"changed": None, "input": None, "limit": None},
+                "order_status": {"changed": None, "input": None, "limit": None},
+                "order_purchase_timestamp": {"changed": None, "input": None, "limit": None},
+                "order_approved_at": {"changed": None, "input": None, "limit": None},
+                "order_delivered_carrier_date": {"changed": None, "input": None, "limit": None},
+                "order_delivered_customer_date": {"changed": None, "input": None, "limit": None},
+                "order_estimated_delivery_date": {"changed": None, "input": None, "limit": None}
+                }
+        left_column, right_column = st.columns(2)
+        left_column.write("Original Data")
+        right_column.write("Adjusted Data")
+
+        # Load limitation
+        referencing_information = st.session_state.map['referencing_keys'][data['name']]
+        referencing_information_length = len(referencing_information) if referencing_information is not None else 0
+
+        data['order_id']['limit'] = connector.get_single_unique(data['name'], "order_id").astype(str).tolist()
+        data['customer_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['order_status']['limit'] = connector.get_single_unique(data['name'], "order_status").astype(str).tolist()
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_purchase_timestamp')
+        tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
+        tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
+        data['order_purchase_timestamp']['limit'] = (tmp_min, tmp_max)
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_approved_at')
+        tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
+        tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
+        data['order_approved_at']['limit'] = (tmp_min, tmp_max)
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_delivered_carrier_date')
+        tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
+        tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
+        data['order_delivered_carrier_date']['limit'] = (tmp_min, tmp_max)
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_delivered_customer_date')
+        tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
+        tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
+        data['order_delivered_customer_date']['limit'] = (tmp_min, tmp_max)
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_estimated_delivery_date')
+        tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
+        tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
+        data['order_estimated_delivery_date']['limit'] = (tmp_min, tmp_max)
+
+
+        # Original data
+        data['order_id']['input'] = left_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None)
+        data['customer_id']['input'] = left_column.selectbox(label="Customer ID", options=data['customer_id']['limit'], index=None)
+        data['order_status']['input'] = left_column.selectbox(label="Status", options=data['order_status']['limit'], index=None)
+        data['order_purchase_timestamp']['input'] = left_column.slider("Purchase time", min_value=data['order_purchase_timestamp']['limit'][0], max_value=data['order_purchase_timestamp']['limit'][1], value=data['order_purchase_timestamp']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        data['order_approved_at']['input'] = left_column.slider("Approved time", min_value=data['order_approved_at']['limit'][0], max_value=data['order_approved_at']['limit'][1], value=data['order_approved_at']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        data['order_delivered_carrier_date']['input'] = left_column.slider("Delivered Carrier Date", min_value=data['order_delivered_carrier_date']['limit'][0], max_value=data['order_delivered_carrier_date']['limit'][1], value=data['order_delivered_carrier_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        data['order_delivered_customer_date']['input'] = left_column.slider("Delivered Customer Date", min_value=order_delivered_customer_date_min, max_value=order_delivered_customer_date_max, value=(order_delivered_customer_date_min, order_delivered_customer_date_max), step=config.time['step']['second'], format=config.time['format']['long'])
+        data['order_estimated_delivery_date']['input'] = left_column.slider("Estimated Delivery Date", min_value=data['order_estimated_delivery_date']['limit'][0], max_value=data['order_estimated_delivery_date']['limit'][1], value=data['order_estimated_delivery_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+
+        # New data
+        data['order_id']['changed'] = right_column.text_input(label="Order ID", max_chars=32)
+        data['customer_id']['changed'] = right_column.text_input(label="Customer ID", max_chars=32)
+        data['order_status']['changed'] = right_column.selectbox(label="Status", options=data['order_status']['limit'], index=None)
+        key = "Purchase At"
+        tmp_date = right_column.date_input(f"{key} - Date")
+        tmp_time = right_column.time_input(f"{key} - Time")
+        data['order_purchase_timestamp']['changed'] = (tmp_date, tmp_time)
+        key = "Approved At"
+        tmp_date = right_column.date_input(f"{key} - Date")
+        tmp_time = right_column.time_input(f"{key} - Time")
+        data['order_approved_at']['changed'] = (tmp_date, tmp_time)
+        key = "Carrier's Delivered"
+        tmp_date = right_column.date_input(f"{key} - Date")
+        tmp_time = right_column.time_input(f"{key} - Time")
+        data['order_delivered_carrier_date']['changed'] = (tmp_date, tmp_time)
+        key = "Customer's Delivered"
+        tmp_date = right_column.date_input(f"{key} - Date")
+        tmp_time = right_column.time_input(f"{key} - Time")
+        data['order_delivered_customer_date']['changed'] = (tmp_date, tmp_time)
+        key = "Estimated Delivered"
+        tmp_date = right_column.date_input(f"{key} - Date")
+        tmp_time = None
+        data['order_estimated_delivery_date']['changed'] = (tmp_date, tmp_time)
+    # with tab_order_payments:
+    if selected_dataset == "order_payments":
+        data = {
+                "name": "order_payments", 
+                "order_id": {"changed": None, "input": None, "limit": None}, 
+                "payment_sequential": {"changed": None, "input": None, "limit": None}, 
+                "payment_type": {"changed": None, "input": None, "limit": None},
+                "payment_installments": {"changed": None, "input": None, "limit": None},
+                "payment_value": {"changed": None, "input": None, "limit": None}
+                }
+        left_column, right_column = st.columns(2)
+        left_column.write("Original Data")
+        right_column.write("Adjusted Data")
+
+        # Load limitation
+        referencing_information = st.session_state.map['referencing_keys'][data['name']]
+        referencing_information_length = len(referencing_information) if referencing_information is not None else 0
+
+        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['payment_sequential']['limit'] = connector.get_single_unique(data['name'], 'payment_sequential').astype(str).tolist()
+        data['payment_type']['limit'] = connector.get_single_unique(data['name'], 'payment_type').astype(str).tolist()
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'payment_installments')
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data['payment_installments']['limit'] = (tmp_min, tmp_max)
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'payment_value')
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data['payment_value']['limit'] = (tmp_min, tmp_max)
+
+        # Original data
+        data['order_id']['input'] = left_column.selectbox(label = "Order ID", options = data['order_id']['limit'], index = None, key="update_order_payments_order_id")
+        data['payment_sequential']['input'] = left_column.selectbox(label = "Payment Sequential", options=data['payment_sequential']['limit'], index=None)
+        data['payment_type']['input'] = left_column.selectbox(label="Payment Type", options=data['payment_type']['limit'], index = None)
+        data['payment_installments']['input'] = left_column.selectbox(label="Payment Installments", options=data['payment_installments']['limit'], index = None)
+        data['payment_value']['input'] = left_column.slider("Payment Value", min_value=data['payment_value']['limit'][0], max_value=data['payment_value']['limit'][1], value=data['payment_value']['limit'], step=config.concurrency)
+
+        # New data
+        data['order_id']['changed'] = right_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None)
+        data['payment_sequential']['changed'] = right_column.number_input(label="Payment Sequential", step=1, min_value=1)
+        data['payment_type']['changed'] = right_column.text_input(label="Payment Type", max_chars=20)
+        data['payment_installments']['changed'] = right_column.number_input(label="Payment Installments", step=1, min_value=0)
+        data['payment_value']['changed'] = right_column.number_input(label="payment_value", step=0.01, min_value=0.01)
+    # with tab_products:
+    if selected_dataset == "products":
+        data = {
+                "name": "products",
+                "product_id": {"changed": None, "input": None, "limit": None},
+                "product_category_name": {"changed": None, "input": None, "limit": None},
+                "product_name_length": {"changed": None, "input": None, "limit": None},
+                "product_description_length": {"changed": None, "input": None, "limit": None},
+                "product_photos_qty": {"changed": None, "input": None, "limit": None},
+                "product_weight_g": {"changed": None, "input": None, "limit": None},
+                "product_length_cm": {"changed": None, "input": None, "limit": None},
+                "product_height_cm": {"changed": None, "input": None, "limit": None},
+                "product_width_cm": {"changed": None, "input": None, "limit": None}
+                }
+        left_column, right_column = st.columns(2)
+        left_column.write("Original Data")
+        right_column.write("Adjusted Data")
+
+        # Load limitation
+        referencing_information = st.session_state.map['referencing_keys'][data['name']]
+        referencing_information_length = len(referencing_information) if referencing_information is not None else 0
+
+        data['product_id']['limit'] = connector.get_single_unique(data['name'], 'product_id').astype(str).tolist()
+        data['product_category_name']['limit'] = connector.get_single_unique(data['name'], 'product_category_name').astype(str).tolist()
+        key = 'product_name_length'
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data[key]['limit'] = (tmp_min, tmp_max)
+        key = 'product_description_length'
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data[key]['limit'] = (tmp_min, tmp_max)
+        key = 'product_photos_qty'
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data[key]['limit'] = (tmp_min, tmp_max)
+        key = 'product_weight_g'
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data[key]['limit'] = (tmp_min, tmp_max)
+        key = 'product_length_cm'
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data[key]['limit'] = (tmp_min, tmp_max)
+        key = 'product_height_cm'
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data[key]['limit'] = (tmp_min, tmp_max)
+        key = 'product_width_cm'
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data[key]['limit'] = (tmp_min, tmp_max)
+
+        # Original data
+        data['product_id']['input'] = left_column.selectbox(label="Product ID", options = data['product_id']['limit'], index=None)
+        data['product_category_name']['input'] = left_column.selectbox(label="Product Category", options=data['product_category_name']['limit'], index = None)
+        data['product_name_length']['input'] = left_column.slider(label="Name Length", min_value=data['product_name_length']['limit'][0], max_value=data['product_name_length']['limit'][1], value=data['product_name_length']['limit'], step=config.integer)
+        data['product_description_length']['input'] = left_column.slider(label="Description Length", min_value=data['product_description_length']['limit'][0], max_value=data['product_description_length']['limit'][1], value=data['product_description_length']['limit'], step=config.integer)
+        data['product_photos_qty']['input'] = left_column.slider(label="Photo Quantity", min_value=data['product_photos_qty']['limit'][0], max_value=data['product_photos_qty']['limit'][1], value=data['product_photos_qty']['limit'], step=config.integer)
+        data['product_weight_g']['input'] = left_column.slider(label="Weight in gram", min_value=data['product_weight_g']['limit'][0], max_value=data['product_weight_g']['limit'][1], value=data['product_weight_g']['limit'], step=config.integer)
+        data['product_length_cm']['input'] = left_column.slider(label="Length in cm", min_value=data['product_length_cm']['limit'][0], max_value=data['product_length_cm']['limit'][1], value=data['product_length_cm']['limit'], step=config.integer)
+        data['product_height_cm']['input'] = left_column.slider(label="Height in cm", min_value=data['product_height_cm']['limit'][0], max_value=data['product_height_cm']['limit'][1], value=data['product_height_cm']['limit'], step=config.integer)
+        data['product_width_cm']['input'] = left_column.slider(label="Width in cm", min_value=data['product_width_cm']['limit'][0], max_value=data['product_width_cm']['limit'][1], value=data['product_width_cm']['limit'], step=config.integer)
+
+        # New data
+        data['product_id']['changed'] = right_column.text_input(label="Product ID", max_chars=32)
+        data['product_category_name']['changed'] = right_column.text_input(label="Category Name", max_chars=64)
+        data['product_name_length']['changed'] = right_column.number_input(label="Product Name Length", step=1, min_value=1)
+        data['product_description_length']['changed'] = right_column.number_input(label="Product Description Length", step=1, min_value=1)
+        data['product_photos_qty']['changed'] = right_column.number_input(label="Photo qty", step=1, min_value=1)
+        data['product_weight_g']['changed'] = right_column.number_input(label="Weight (g)", step=1, min_value=1)
+        data['product_length_cm']['changed'] = right_column.number_input(label="Length (cm)", step=1, min_value=1)
+        data['product_height_cm']['changed'] = right_column.number_input(label="Height (cm)", step=1, min_value=1)
+        data['product_width_cm']['changed'] = right_column.number_input(label="Width (cm)", step=1, min_value=1)
+    # with tab_order_items:
+    if selected_dataset == "order_items":
+        data = {
+                "name": "order_items",
+                "order_id": {"changed": None, "input": None, "limit": None},
+                "order_item_id": {"changed": None, "input": None, "limit": None},
+                "product_id": {"changed": None, "input": None, "limit": None},
+                "seller_id": {"changed": None, "input": None, "limit": None},
+                "shipping_limit_date": {"changed": None, "input": None, "limit": None},
+                "price": {"changed": None, "input": None, "limit": None},
+                "freight_value": {"changed": None, "input": None, "limit": None}
+                }
+        left_column, right_column = st.columns(2)
+        left_column.write("Original Data")
+        right_column.write("Adjusted Data")
+
+        # Load limitation
+        referencing_information = st.session_state.map['referencing_keys'][data['name']]
+        referencing_information_length = len(referencing_information) if referencing_information is not None else 0
+
+        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['order_item_id']['limit'] = connector.get_single_unique(data['name'], 'order_item_id').astype(str).tolist()
+        data['product_id']['limit'] = connector.get_single_unique(referencing_information['table'][1], referencing_information['key'][1]).astype(str).tolist()
+        data['seller_id']['limit'] = connector.get_single_unique(referencing_information['table'][2], referencing_information['key'][2]).astype(str).tolist()
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'shipping_limit_date')
+        tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
+        tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
+        data['shipping_limit_date']['limit'] = (tmp_min, tmp_max)
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'price')
+        tmp_min = float(tmp_min.iloc[0])
+        tmp_max = float(tmp_max.iloc[0])
+        data['price']['limit'] = (tmp_min, tmp_max)
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'freight_value')
+        tmp_min = float(tmp_min.iloc[0])
+        tmp_max = float(tmp_max.iloc[0])
+        data['freight_value']['limit'] = (tmp_min, tmp_max)
+
+        # Original data
+        data['order_id']['input'] = left_column.selectbox(label="Order ID", options = data['order_id']['limit'], index=None, key="update_order_items_order_id")
+        data['order_item_id']['input'] = left_column.selectbox(label="Order Item ID", options=data['order_item_id']['limit'], index=None)
+        data['product_id']['input'] = left_column.selectbox(label="Product ID", options=data['product_id']['limit'], index=None, key="order_items-product_id")
+        data['seller_id']['input'] = left_column.selectbox(label="Seller ID", options=data['seller_id']['limit'], index=None)
+        data['shipping_limit_date']['input'] = left_column.slider("Shipping Limit Date", min_value=data['shipping_limit_date']['limit'][0], max_value=data['shipping_limit_date']['limit'][1], value=data['shipping_limit_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+        data['price']['input'] = left_column.slider("Price", min_value=data['price']['limit'][0], max_value=data['price']['limit'][1], value=data['price']['limit'], step=config.concurrency)
+        data['freight_value']['input'] = left_column.slider("Freight Value", min_value=data['freight_value']['limit'][0], max_value=data['freight_value']['limit'][1], value=data['freight_value']['limit'], step=config.concurrency)
+
+        # New data
+        data['order_id']['changed'] = right_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None, key = "order_items_order_id")
+        data['order_item_id']['changed'] = right_column.text_input(label="Item ID", max_chars=32)
+        data['product_id']['changed'] = right_column.selectbox(label="Product ID", options=data['product_id']['limit'], index=None)
+        data['seller_id']['changed'] = right_column.selectbox(label="Seller ID", options=data['seller_id']['limit'], index=None)
+        key = "Shipping Limit"
+        tmp_date = right_column.date_input(f"{key} - Date")
+        tmp_time = right_column.time_input(f"{key} - Time")
+        data['shipping_limit_date']['changed'] = (tmp_date, tmp_time)
+        data['price']['changed'] = right_column.number_input(label="Order Price", step=0.01, min_value=0.01)
+        data['freight_value']['changed'] = right_column.number_input(label="Freight Price", step=0.01, min_value=0.01)
+    # with tab_order_reviews:
+    if selected_dataset == "order_reviews":
+        data = {
+                "name": "order_reviews",
+                "review_id": {"changed": None, "input": None, "limit": None},
+                "order_id": {"changed": None, "input": None, "limit": None},
+                "review_score": {"changed": None, "input": None, "limit": None},
+                "review_creation_date": {"changed": None, "input": None, "limit": None}
+                }
+        left_column, right_column = st.columns(2)
+        left_column.write("Original Data")
+        right_column.write("Adjusted Data")
+
+        # Load limitation
+        referencing_information = st.session_state.map['referencing_keys'][data['name']]
+        referencing_information_length = len(referencing_information) if referencing_information is not None else 0
+
+
+        data['review_id']['limit'] = connector.get_single_unique(data['name'], 'review_id').astype(str).tolist()
+        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'review_score')
+        tmp_min = int(tmp_min.iloc[0])
+        tmp_max = int(tmp_max.iloc[0])
+        data['review_score']['limit'] = (tmp_min, tmp_max)
+        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'review_creation_date')
+        tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
+        tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
+        data['review_creation_date']['limit'] = (tmp_min, tmp_max)
+
+        # Original data
+        data['review_id']['input'] = left_column.selectbox("Review ID", options=data['review_id']['limit'], index=None)
+        data['order_id']['input'] = left_column.selectbox("order_id", options=data['order_id']['limit'], index=None)
+        data['review_score']['input'] = left_column.slider("Review Score", min_value=data['review_score']['limit'][0], max_value=data['review_score']['limit'][1], value = data['review_score']['limit'], step=config.integer)
+        data['review_creation_date']['input'] = left_column.slider("Review Creation Date", min_value=data['review_creation_date']['limit'][0], max_value=data['review_creation_date']['limit'][1], value=data['review_creation_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+
+        # New data
+        data['review_id']['changed'] = right_column.text_input(label="Review ID", max_chars=32)
+        data['order_id']['changed'] = right_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None, key = "order_reviews_order_id")
+        data['review_score']['changed'] = right_column.number_input(label="Review Score", step=1, min_value=1, max_value=5)
+        key = "Review Creation"
+        tmp_date = right_column.date_input(f"{key} - Date")
+        tmp_time = None
+        data['review_creation_date']['changed'] = (tmp_date, tmp_time)
+
+    # Search target
+    if data is None:
+        disable_button = True
+    else:
+        special = ['name']
+        keys = [key for key in data.keys() if key not in special]
+        foreign_keys = st.session_state.map['referencing_keys'][data['name']] # dict with parallel list
+        primary_keys = st.session_state.map['primary_keys'][data['name']] # list
+
+        # Over original data
+        # search target exists
+        inputted_primary_key = True
+        for key in primary_keys:
+            if (data[key]['input'] is None) or (data[key]['input'] == ""):
+                inputted_primary_key = False
+
+        if not(inputted_primary_key):
+            disable_button = True
+            left_column.error(f"Please at least select value for ({', '.join(primary_keys)})")
+        else:
+            record_query = f"SELECT * FROM {data['name']} WHERE "
+            for key in keys:
+                value = data[key]['input']
+                if value is not None:
+                    slice = utils.search_preprocessing(key, value)
+                    if slice is None:
+                        left_column.error(f"Meet an unexpected value {key}:{value}")
+                    else:
+                        record_query += slice
+                        record_query += " AND "
+            record_query = record_query[:-4]
+            record_query += ";"
+
+            record_result = connector.query(record_query)
+            if len(record_result) == 0:
+                disable_button = True
+                left_column.error("Searched record doesn't exists with filters")
+
+        # Over New data
+        # search whether value for foreign key exists
+        exist_foreign_key = True
+        if foreign_keys is not None:
+            for idx in range(len(foreign_keys['local'])):
+                foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['changed']}';" # foreign keys are zip_code or xx_id
+
+                foreign_result = connector.query(foreign_query)
+                if len(foreign_result) == 0:
+                    exist_foreign_key = False;
+                    right_column.error(f"You didn't input an existed value about {foreign_keys['local'][idx]}")
+
+        # search whether value for primary key exists
+        exist_primary_key = False
+        inputted_primary_key = True
+        for key in primary_keys:
+            if (data[key]['changed'] is None) or (data[key]['changed'] == ""):
+                inputted_primary_key = False
+        if not(inputted_primary_key):
+            exist_primary_key = True
+            right_column.error(f"Unique information you need to input: ({', '.join(primary_keys)})")
+        else:
+            primary_query = f"SELECT * FROM {data['name']} WHERE "
+            for key in primary_keys:
+                primary_query += f"{key} = '{data[key]['changed']}' AND "
+            primary_query = primary_query[:-4]
+            primary_query += ";"
+            primary_result = connector.query(primary_query)
+            if len(primary_result) != 0:
+                exist_primary_key = True
+                right_column.error(f"You input some value or value pair that exists in table {data['name']} over primary key ({', '.join(primary_keys)}). ")
+
+
+        if not(exist_foreign_key):
+            disable_button = True
+        elif (exist_primary_key):
+            disable_button = True
+
+        # Special check
+        if data['name'] == "orders":
+            time_purchase= data['order_purchase_timestamp']['changed']
+            time_purchase= datetime.combine(time_purchase[0], time_purchase[1])
+            time_approved= data['order_approved_at']['changed']
+            time_approved= datetime.combine(time_approved[0],time_approved[1])
+            time_delivered_carrier= data['order_delivered_carrier_date']['changed']
+            time_delivered_carrier= datetime.combine(time_delivered_carrier[0],time_delivered_carrier[1])
+            time_delivered_customer= data['order_delivered_customer_date']['changed']
+            time_delivered_customer= datetime.combine(time_delivered_customer[0],time_delivered_customer[1])
+            time_estimated= data['order_estimated_delivery_date']['changed']
+            time_estimated= datetime.combine(time_estimated[0],datetime.min.time())
+            if not ((time_purchase < time_approved and time_approved < time_delivered_carrier and time_delivered_carrier < time_delivered_customer) and (time_purchase < time_approved < time_estimated)):
+                right_column.error("Your input about multiple recorded time is impossible generally.")
+                disable_button = True
+
+        for key in keys:
+            if "_id" in key:
+                if len(data[key]['changed'].strip()) != 32:
+                    right_column.error("You must make ID 32 characters long")
+                    disable_button = True
+                if " " in data[key]['changed']:
+                    right_column.error("No space in ID")
+                    disable_button = True
+
+                for i in range(len(data[key]['changed'])):
+                    if (data[key]['changed'][i] not in string.ascii_lowercase) and (data[key]['changed'][i] not in string.digits):
+                        right_column.error("ID can only be constructed by letters in lower case or digits")
+                        disable_button = True
+                        break
+
+        for key in keys:
+            if "state" in key:
+                if len(data[key]['changed'].strip()) != 2:
+                    right_column.error("You must make state 2 characters long without space")
+                    disable_button = True
+
+                for i in range(len(data[key]['changed'])):
+                    if data[key]['changed'][i] not in string.ascii_uppercase:
+                        right_column.error("Sate Code can only be constructed by letters in upper case")
+                        disable_button = True
+                        break
+
+        for key in keys:
+            if "city" in key:
+                for i in range(len(data[key]['changed'])):
+                    if data[key]['changed'][i] in string.digits:
+                        right_column.error("City name shouldn't includes digit.")
+                        disable_button = True
+                        break
+
+        for key in keys:
+            if "zip" in key:
+                if ((len(data[key]['changed'].strip()) != 4) or (len(data[key]['changed'].strip()) != 5)):
+                    right_column.error("You must make Zip Code 4 characters or 5 characters long without space")
+                    disable_button = True
+
+                for i in range(len(data[key]['changed'])):
+                    if data[key]['changed'][i] not in string.digits:
+                        right_column.error("zip code can only be constructed by digits")
+                        disable_button = True
+                        break
+
+
+
+
+
+    dialog_submit = st.button("Submit", disabled=disable_button)
     if dialog_submit:
-        st.session_state.stack.append(value)
+        changed_side = ""
+        for key in keys:
+            tmp_key = key
+            tmp_value = data[key]['changed']
+            if tmp_value is not None:
+                changed_side += "{tmp_key} = {utils.input_preprocessing(tmp_value)}, "
+        # remove last comma
+        changed_side = changed_side[:-2]
+
+        original_side = ""
+        for key in primary_keys:
+            slice = utils.search_preprocessing(key, data[key]['input'])
+            # no protection for search exact ID only.
+            if slice is None:
+                disable_button = True
+                st.error("Error! Target primary key disappeared")
+            original_side += slice
+            original_side += " AND "
+        # delete last end
+        original_side = original_side [:-4]
+
+
+
+        final_query = f"UPDATE {data['name']} SET {changed_side} WHERE {original_side};"
+        connector.execute(final_query)
+        connector.checkpoint_add(checkpoint="prepared_name")
+        st.session_state.stack.append(prepared_name)
+        st.session_state.data_changed = True
         st.rerun()
 
 if buttom_table_add:
@@ -1817,10 +2488,13 @@ if buttom_table_update:
     update_data()
 
 if change_confirm:
-    right_column.write(f"Change confirm: {st.session_state.stack}")
+    st.session_state.stack = []
+    st.session_state.connector.commit()
+    st.session_state.connector.start_transaction()
 
 if change_rollback:
-    right_column.write(f"Change rollback: {st.session_state.stack}, {st.session_state.stack.pop()}, {st.session_state.stack}")
+    checkpoint = st.session_state.stack.pop()
+    st.session_state.connector.checkpoint_rollback(checkpoint)
 
 
 
