@@ -1,12 +1,9 @@
-from contextlib import ContextDecorator
 from os import sep, stat
 from altair import Order
-from pandas.core.methods.describe import select_describe_func
 import streamlit as st
 import numpy as np
 import pandas as pd
 import sqlalchemy
-from toolz import count
 import config
 import yaml
 import utils
@@ -20,9 +17,14 @@ with open('config.yaml', 'r') as file:
     database_config = yaml.safe_load(file)
 
 
+if "stack" not in st.session_state:
+    st.session_state.stack = []
+
 if "connector" not in st.session_state:
-    connection = st.connection('source', type='sql')
-    st.session_state.connector = utils.Connector(connection)
+    # connection = st.connection('source', type='sql')
+    # st.session_state.connector = utils.Connector(connection)
+    # connection = st.connection('source', type='sql')
+    st.session_state.connector = utils.NewConnector()
     st.session_state.connector.start_transaction()
 
 if "query" not in st.session_state:
@@ -30,9 +32,6 @@ if "query" not in st.session_state:
 
 if "result" not in st.session_state:
     st.session_state.result = ""
-
-if "stack" not in st.session_state:
-    st.session_state.stack = []
 
 if "data_changed" not in st.session_state:
     st.session_state.data_changed = False
@@ -52,7 +51,6 @@ left_column = left_column.container(height=config.page_height, border=config.sho
 right_column = right_column.container(height=config.page_height, border=config.show_all_edge)
 right_column.write("Table")
 
-# right_column.write(st.session_state.query)
 
 
 # confirm or rollback
@@ -901,24 +899,28 @@ else:
     if filter_area_buttom:
         result = connector.query(query)
         st.session_state.result = result
-        # st.session_state.result = query
         st.session_state.query = query
 
     if st.session_state.data_changed == True:
         st.session_state.data_changed = False
-        st.session_state.result = st.session_state.connector.query(st.session_state.query)
 
-    if st.session_state.query == "":
-        right_column.write("Please click submit for search data.")
+        if st.session_state.query == "":
+            right_column.write("Please click submit for search data.")
+        else:
+            st.session_state.result = connector.query(st.session_state.query)
+            right_column.dataframe(connector.query(st.session_state.query), height = config.table_height, use_container_width = True)
     else:
-        right_column.dataframe(st.session_state.result, height = config.table_height)
+        if st.session_state.query == "":
+            right_column.write("Please click submit for search data.")
+        else:
+            # st.session_state.result = connector.query(st.session_state.query)
+            right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width  = True)
 
 # Solving behavior: Add 
 
 # st.dialog
 # st.tab
 
-stack = []
 
 @st.dialog("Add", width="large")
 def add_data():
@@ -976,11 +978,11 @@ def add_data():
         data['geolocation_state']['limit'] = connector.get_single_unique(data['name'], 'geolocation_state').astype(str).tolist()
 
         # Input widgets # no wrong input type handling
-        data['geolocation_zip_code_prefix']['input'] = st.text_input(label="zip_code_prefix", max_chars=5)
-        data['geolocation_lat']['input'] = st.number_input(label="Latitude", step=0.01)
-        data['geolocation_lng']['input'] = st.number_input(label="Longtitude", step=0.01)
-        data['geolocation_city']['input'] = st.text_input(label="City", max_chars=32)
-        data['geolocation_state']['input'] = st.text_input(label="State", max_chars=2)
+        data['geolocation_zip_code_prefix']['input'] = st.text_input(label="zip_code_prefix", max_chars=5, value=None)
+        data['geolocation_lat']['input'] = st.number_input(label="Latitude", step=0.01, value = None)
+        data['geolocation_lng']['input'] = st.number_input(label="Longtitude", step=0.01, value = None)
+        data['geolocation_city']['input'] = st.text_input(label="City", max_chars=32, value=None)
+        data['geolocation_state']['input'] = st.text_input(label="State", max_chars=2, value=None)
     # with tab_sellers:
     if selected_dataset == "sellers":
         data = {
@@ -1001,10 +1003,10 @@ def add_data():
         data['seller_state']['limit'] = connector.get_single_unique(data['name'], 'seller_state').astype(str).tolist()
 
         # Input widgets # no wrong input type handling
-        data['seller_id']['input'] = st.text_input(label="ID", max_chars=32)
-        data['seller_zip_code_prefix']['input'] = st.text_input(label="zip_code_prefix", key = "seller_zip_code_prefix", max_chars=5)
-        data['seller_city']['input'] = st.text_input(label="City", key = "seller_city", max_chars=32)
-        data['seller_state']['input'] = st.text_input(label="State", key = "seller_state", max_chars=2)
+        data['seller_id']['input'] = st.text_input(label="ID", max_chars=32, value=None)
+        data['seller_zip_code_prefix']['input'] = st.text_input(label="zip_code_prefix", key = "seller_zip_code_prefix", max_chars=5, value=None)
+        data['seller_city']['input'] = st.text_input(label="City", key = "seller_city", max_chars=32, value=None)
+        data['seller_state']['input'] = st.text_input(label="State", key = "seller_state", max_chars=2, value=None)
     # with tab_customers:
     if selected_dataset == "customers":
         data = { 
@@ -1027,11 +1029,11 @@ def add_data():
         data['customer_state']['limit'] = connector.get_single_unique(data['name'], 'customer_state').astype(str).tolist()
 
         # Input widgets # no wrong input type handling
-        data['customer_id']['input'] = st.text_input(label="Account ID", max_chars=32)
-        data['customer_unique_id']['input'] = st.text_input(label="Unique ID", max_chars=32)
-        data['customer_zip_code_prefix']['input'] = st.text_input(label="zip_code_prefix", key = "customer_zip_code_prefix", max_chars=5)
-        data['customer_city']['input'] = st.text_input(label="City", key = "customer_city", max_chars=32)
-        data['customer_state']['input'] = st.text_input(label="State", key = "customer_state", max_chars=2)
+        data['customer_id']['input'] = st.text_input(label="Account ID", max_chars=32, value=None)
+        data['customer_unique_id']['input'] = st.text_input(label="Unique ID", max_chars=32, value=None)
+        data['customer_zip_code_prefix']['input'] = st.text_input(label="zip_code_prefix", key = "customer_zip_code_prefix", max_chars=5, value=None)
+        data['customer_city']['input'] = st.text_input(label="City", key = "customer_city", max_chars=32, value=None)
+        data['customer_state']['input'] = st.text_input(label="State", key = "customer_state", max_chars=2, value=None)
     # with tab_orders:
     if selected_dataset == "orders":
         data = {
@@ -1076,8 +1078,8 @@ def add_data():
 
 
         # Input widgets # no wrong input type handling
-        data['order_id']['input'] = st.text_input(label="Order ID", max_chars=32)
-        data['customer_id']['input'] = st.text_input(label="Customer ID", max_chars=32)
+        data['order_id']['input'] = st.text_input(label="Order ID", max_chars=32, value=None)
+        data['customer_id']['input'] = st.text_input(label="Customer ID", max_chars=32, value=None)
         data['order_status']['input'] = st.selectbox(label="Status", options=data['order_status']['limit'], index=None)
         key = "Purchase At"
         tmp_date = st.date_input(f"{key} - Date")
@@ -1128,10 +1130,10 @@ def add_data():
 
         # Input widgets # no wrong input type handling
         data['order_id']['input'] = st.selectbox(label="Order ID", options=data['order_id']['limit'], index=None)
-        data['payment_sequential']['input'] = st.number_input(label="Payment Sequential", step=1, min_value=1)
-        data['payment_type']['input'] = st.text_input(label="Payment Type", max_chars=20)
-        data['payment_installments']['input'] = st.number_input(label="Payment Installments", step=1, min_value=0)
-        data['payment_value']['input'] = st.number_input(label="payment_value", step=0.01, min_value=0.01)
+        data['payment_sequential']['input'] = st.number_input(label="Payment Sequential", step=1, min_value=1, value = None)
+        data['payment_type']['input'] = st.text_input(label="Payment Type", max_chars=20, value=None)
+        data['payment_installments']['input'] = st.number_input(label="Payment Installments", step=1, min_value=0, value = None)
+        data['payment_value']['input'] = st.number_input(label="payment_value", step=0.01, min_value=0.01, value = None)
     # with tab_products:
     if selected_dataset == "products":
         data = {
@@ -1190,15 +1192,15 @@ def add_data():
         data[key]['limit'] = (tmp_min, tmp_max)
 
         # Input widgets # no wrong input type handling
-        data['product_id']['input'] = st.text_input(label="Product ID", max_chars=32)
-        data['product_category_name']['input'] = st.text_input(label="Category Name", max_chars=64)
-        data['product_name_length']['input'] = st.number_input(label="Product Name Length", step=1, min_value=1)
-        data['product_description_length']['input'] = st.number_input(label="Product Description Length", step=1, min_value=1)
-        data['product_photos_qty']['input'] = st.number_input(label="Photo qty", step=1, min_value=1)
-        data['product_weight_g']['input'] = st.number_input(label="Weight (g)", step=1, min_value=1)
-        data['product_length_cm']['input'] = st.number_input(label="Length (cm)", step=1, min_value=1)
-        data['product_height_cm']['input'] = st.number_input(label="Height (cm)", step=1, min_value=1)
-        data['product_width_cm']['input'] = st.number_input(label="Width (cm)", step=1, min_value=1)
+        data['product_id']['input'] = st.text_input(label="Product ID", max_chars=32, value=None)
+        data['product_category_name']['input'] = st.text_input(label="Category Name", max_chars=64, value=None)
+        data['product_name_length']['input'] = st.number_input(label="Product Name Length", step=1, min_value=1, value = None)
+        data['product_description_length']['input'] = st.number_input(label="Product Description Length", step=1, min_value=1, value = None)
+        data['product_photos_qty']['input'] = st.number_input(label="Photo qty", step=1, min_value=1, value = None)
+        data['product_weight_g']['input'] = st.number_input(label="Weight (g)", step=1, min_value=1, value = None)
+        data['product_length_cm']['input'] = st.number_input(label="Length (cm)", step=1, min_value=1, value = None)
+        data['product_height_cm']['input'] = st.number_input(label="Height (cm)", step=1, min_value=1, value = None)
+        data['product_width_cm']['input'] = st.number_input(label="Width (cm)", step=1, min_value=1, value = None)
     # with tab_order_items:
     if selected_dataset == "order_items":
         data = {
@@ -1235,15 +1237,15 @@ def add_data():
 
         # Input widgets # no wrong input type handling
         data['order_id']['input'] = st.selectbox(label="Order ID", options=data['order_id']['limit'], index=None, key = "order_items_order_id")
-        data['order_item_id']['input'] = st.text_input(label="Item ID", max_chars=32)
+        data['order_item_id']['input'] = st.text_input(label="Item ID", max_chars=32, value=None)
         data['product_id']['input'] = st.selectbox(label="Product ID", options=data['product_id']['limit'], index=None)
         data['seller_id']['input'] = st.selectbox(label="Seller ID", options=data['seller_id']['limit'], index=None)
         key = "Shipping Limit"
         tmp_date = st.date_input(f"{key} - Date")
         tmp_time = st.time_input(f"{key} - Time")
         data['shipping_limit_date']['input'] = (tmp_date, tmp_time)
-        data['price']['input'] = st.number_input(label="Order Price", step=0.01, min_value=0.01)
-        data['freight_value']['input'] = st.number_input(label="Freight Price", step=0.01, min_value=0.01)
+        data['price']['input'] = st.number_input(label="Order Price", step=0.01, min_value=0.01, value = None)
+        data['freight_value']['input'] = st.number_input(label="Freight Price", step=0.01, min_value=0.01, value = None)
     # with tab_order_reviews:
     if selected_dataset == "order_reviews":
         data = {
@@ -1271,9 +1273,9 @@ def add_data():
         data['review_creation_date']['limit'] = (tmp_min, tmp_max)
 
         # Input widgets # no wrong input type handling
-        data['review_id']['input'] = st.text_input(label="Review ID", max_chars=32)
+        data['review_id']['input'] = st.text_input(label="Review ID", max_chars=32, value=None)
         data['order_id']['input'] = st.selectbox(label="Order ID", options=data['order_id']['limit'], index=None, key = "order_reviews_order_id")
-        data['review_score']['input'] = st.number_input(label="Review Score", step=1, min_value=1, max_value=5)
+        data['review_score']['input'] = st.number_input(label="Review Score", step=1, min_value=1, max_value=5, value = None)
         key = "Review Creation"
         tmp_date = st.date_input(f"{key} - Date")
         tmp_time = None
@@ -1292,12 +1294,14 @@ def add_data():
         exist_foreign_key = True
         if foreign_keys is not None:
             for idx in range(len(foreign_keys['local'])):
-                foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['input']}';" # foreign keys are zip_code or xx_id
+                key = foreign_keys['key'][idx]
+                if data[key]['input'] is not None:
+                    foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['input']}';" # foreign keys are zip_code or xx_id
 
-                foreign_result = connector.query(foreign_query)
-                if len(foreign_result) == 0:
-                    exist_foreign_key = False;
-                    st.error(f"You didn't input an existed value about {foreign_keys['local'][idx]}")
+                    foreign_result = connector.query(foreign_query)
+                    if len(foreign_result) == 0:
+                        exist_foreign_key = False;
+                        st.error(f"You didn't input an existed value about {foreign_keys['local'][idx]}")
 
         # search whether value for primary key exists
         exist_primary_key = False
@@ -1344,8 +1348,9 @@ def add_data():
         for key in keys:
             if "_id" in key:
                 if (data[key]['input'] is not None):
+                    print(key, data[key]['input'], type(data[key]['input']))
                     if len(data[key]['input'].strip()) != 32:
-                        st.error("You must make ID 32 characters long")
+                        st.error(f"You must make {key} 32 characters long")
                         disable_button = True
                     if " " in data[key]['input']:
                         st.error("No space in ID")
@@ -1382,7 +1387,7 @@ def add_data():
         for key in keys:
             if "zip" in key:
                 if (data[key]['input'] is not None):
-                    if ((len(data[key]['input'].strip()) != 4) or (len(data[key]['input'].strip()) != 5)):
+                    if not((len(data[key]['input'].strip()) != 4) or (len(data[key]['input'].strip()) != 5)):
                         st.error("You must make Zip Code 4 characters or 5 characters long without space")
                         disable_button = True
 
@@ -1412,9 +1417,9 @@ def add_data():
         key_side = key_side[:-2]
         value_side = value_side[:-2]
         final_query = f"INSERT INTO {data['name']} ({key_side}) VALUES ({value_side});"
+        st.session_state.stack.append(connector.checkpoint_add(prepared_name))
+
         connector.execute(final_query)
-        connector.checkpoint_add(checkpoint="prepared_name")
-        st.session_state.stack.append(prepared_name)
         st.session_state.data_changed = True
         st.rerun()
 
@@ -1575,7 +1580,7 @@ def delete_data():
         data['order_purchase_timestamp']['input'] = st.slider("Purchase time", min_value=data['order_purchase_timestamp']['limit'][0], max_value=data['order_purchase_timestamp']['limit'][1], value=data['order_purchase_timestamp']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
         data['order_approved_at']['input'] = st.slider("Approved time", min_value=data['order_approved_at']['limit'][0], max_value=data['order_approved_at']['limit'][1], value=data['order_approved_at']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
         data['order_delivered_carrier_date']['input'] = st.slider("Delivered Carrier Date", min_value=data['order_delivered_carrier_date']['limit'][0], max_value=data['order_delivered_carrier_date']['limit'][1], value=data['order_delivered_carrier_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_delivered_customer_date']['input'] = st.slider("Delivered Customer Date", min_value=order_delivered_customer_date_min, max_value=order_delivered_customer_date_max, value=(order_delivered_customer_date_min, order_delivered_customer_date_max), step=config.time['step']['second'], format=config.time['format']['long'])
+        data['order_delivered_customer_date']['input'] = st.slider("Delivered Customer Date", min_value=data['order_delivered_customer_date']['limit'][0], max_value=data['order_delivered_customer_date']['limit'][1], value=data['order_delivered_customer_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
         data['order_estimated_delivery_date']['input'] = st.slider("Estimated Delivery Date", min_value=data['order_estimated_delivery_date']['limit'][0], max_value=data['order_estimated_delivery_date']['limit'][1], value=data['order_estimated_delivery_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
     if selected_dataset == "order_payments":
         data = {
@@ -1779,11 +1784,12 @@ def delete_data():
             record_query += ";"
 
             record_result = connector.query(record_query)
-            if len(record_result) == 0:
-                disable_button = True
-                st.error("Searched record doesn't exists with filters")
-            else:
-                delete_query = "DELETE FROM {data['name']} WHERE "
+            # if len(record_result) == 0:
+            #     disable_button = True
+            #     st.error("Searched record doesn't exists with filters")
+            # else:
+            if True:
+                delete_query = f"DELETE FROM {data['name']} WHERE "
                 for key in primary_keys:
                     slice = utils.search_preprocessing(key, data[key]['input'])
                     # no protection for search exact ID only.
@@ -1801,9 +1807,8 @@ def delete_data():
 
     dialog_submit = st.button("Submit", disabled=disable_button)
     if dialog_submit:
+        st.session_state.stack.append(connector.checkpoint_add(prepared_name))
         connector.execute(delete_query)
-        connector.checkpoint_add(prepared_name)
-        st.session_state.stack.append(prepared_name)
         st.session_state.data_changed = True
         st.rerun()
 
@@ -1874,11 +1879,11 @@ def update_data():
         data['geolocation_state']['input'] = left_column.selectbox(label="State", options = data['geolocation_state']['limit'], index=None)
 
         # New data
-        data['geolocation_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", max_chars=5)
-        data['geolocation_lat']['changed'] = right_column.number_input(label="Latitude", step=0.01)
-        data['geolocation_lng']['changed'] = right_column.number_input(label="Longtitude", step=0.01)
-        data['geolocation_city']['changed'] = right_column.text_input(label="City", max_chars=32)
-        data['geolocation_state']['changed'] = right_column.text_input(label="State", max_chars=2)
+        data['geolocation_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", max_chars=5, value=None)
+        data['geolocation_lat']['changed'] = right_column.number_input(label="Latitude", step=0.01, value=None)
+        data['geolocation_lng']['changed'] = right_column.number_input(label="Longtitude", step=0.01, value=None)
+        data['geolocation_city']['changed'] = right_column.text_input(label="City", max_chars=32, value=None)
+        data['geolocation_state']['changed'] = right_column.text_input(label="State", max_chars=2, value=None)
     # with tab_sellers:
     if selected_dataset == "sellers":
         data = {
@@ -1909,10 +1914,10 @@ def update_data():
 
 
         # New data
-        data['seller_id']['changed'] = right_column.text_input(label="ID", max_chars=32)
-        data['seller_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", key = "seller_zip_code_prefix", max_chars=5)
-        data['seller_city']['changed'] = right_column.text_input(label="City", key = "seller_city", max_chars=32)
-        data['seller_state']['changed'] = right_column.text_input(label="State", key = "seller_state", max_chars=2)
+        data['seller_id']['changed'] = right_column.text_input(label="ID", max_chars=32, value=None)
+        data['seller_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", key = "seller_zip_code_prefix", max_chars=5, value=None)
+        data['seller_city']['changed'] = right_column.text_input(label="City", key = "seller_city", max_chars=32, value=None)
+        data['seller_state']['changed'] = right_column.text_input(label="State", key = "seller_state", max_chars=2, value=None)
     # with tab_customers:
     if selected_dataset == "customers":
         data = { 
@@ -1945,11 +1950,11 @@ def update_data():
         data['customer_city']['input'] = left_column.selectbox(label="State", options=data['customer_state']['limit'], index = None)
 
         # New data
-        data['customer_id']['changed'] = right_column.text_input(label="Account ID", max_chars=32)
-        data['customer_unique_id']['changed'] = right_column.text_input(label="Unique ID", max_chars=32)
-        data['customer_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", key = "customer_zip_code_prefix", max_chars=5)
-        data['customer_city']['changed'] = right_column.text_input(label="City", key = "customer_city", max_chars=32)
-        data['customer_state']['changed'] = right_column.text_input(label="State", key = "customer_state", max_chars=2)
+        data['customer_id']['changed'] = right_column.text_input(label="Account ID", max_chars=32, value=None)
+        data['customer_unique_id']['changed'] = right_column.text_input(label="Unique ID", max_chars=32, value=None)
+        data['customer_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", key = "customer_zip_code_prefix", max_chars=5, value=None)
+        data['customer_city']['changed'] = right_column.text_input(label="City", key = "customer_city", max_chars=32, value=None)
+        data['customer_state']['changed'] = right_column.text_input(label="State", key = "customer_state", max_chars=2, value=None)
     # with tab_orders:
     if selected_dataset == "orders":
         data = {
@@ -2007,8 +2012,8 @@ def update_data():
         data['order_estimated_delivery_date']['input'] = left_column.slider("Estimated Delivery Date", min_value=data['order_estimated_delivery_date']['limit'][0], max_value=data['order_estimated_delivery_date']['limit'][1], value=data['order_estimated_delivery_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
 
         # New data
-        data['order_id']['changed'] = right_column.text_input(label="Order ID", max_chars=32)
-        data['customer_id']['changed'] = right_column.text_input(label="Customer ID", max_chars=32)
+        data['order_id']['changed'] = right_column.text_input(label="Order ID", max_chars=32, value=None)
+        data['customer_id']['changed'] = right_column.text_input(label="Customer ID", max_chars=32, value=None)
         data['order_status']['changed'] = right_column.selectbox(label="Status", options=data['order_status']['limit'], index=None, key = "update_new_orders_order_status")
         key = "Purchase At"
         tmp_date = right_column.date_input(f"{key} - Date")
@@ -2069,10 +2074,10 @@ def update_data():
 
         # New data
         data['order_id']['changed'] = right_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None)
-        data['payment_sequential']['changed'] = right_column.number_input(label="Payment Sequential", step=1, min_value=1)
-        data['payment_type']['changed'] = right_column.text_input(label="Payment Type", max_chars=20)
-        data['payment_installments']['changed'] = right_column.number_input(label="Payment Installments", step=1, min_value=0)
-        data['payment_value']['changed'] = right_column.number_input(label="payment_value", step=0.01, min_value=0.01)
+        data['payment_sequential']['changed'] = right_column.number_input(label="Payment Sequential", step=1, min_value=1, value = None)
+        data['payment_type']['changed'] = right_column.text_input(label="Payment Type", max_chars=20, value=None)
+        data['payment_installments']['changed'] = right_column.number_input(label="Payment Installments", step=1, min_value=0, value = None)
+        data['payment_value']['changed'] = right_column.number_input(label="payment_value", step=0.01, min_value=0.01, value = None)
     # with tab_products:
     if selected_dataset == "products":
         data = {
@@ -2145,15 +2150,15 @@ def update_data():
         data['product_width_cm']['input'] = left_column.slider(label="Width in cm", min_value=data['product_width_cm']['limit'][0], max_value=data['product_width_cm']['limit'][1], value=data['product_width_cm']['limit'], step=config.integer)
 
         # New data
-        data['product_id']['changed'] = right_column.text_input(label="Product ID", max_chars=32)
-        data['product_category_name']['changed'] = right_column.text_input(label="Category Name", max_chars=64)
-        data['product_name_length']['changed'] = right_column.number_input(label="Product Name Length", step=1, min_value=1)
-        data['product_description_length']['changed'] = right_column.number_input(label="Product Description Length", step=1, min_value=1)
-        data['product_photos_qty']['changed'] = right_column.number_input(label="Photo qty", step=1, min_value=1)
-        data['product_weight_g']['changed'] = right_column.number_input(label="Weight (g)", step=1, min_value=1)
-        data['product_length_cm']['changed'] = right_column.number_input(label="Length (cm)", step=1, min_value=1)
-        data['product_height_cm']['changed'] = right_column.number_input(label="Height (cm)", step=1, min_value=1)
-        data['product_width_cm']['changed'] = right_column.number_input(label="Width (cm)", step=1, min_value=1)
+        data['product_id']['changed'] = right_column.text_input(label="Product ID", max_chars=32, value=None)
+        data['product_category_name']['changed'] = right_column.text_input(label="Category Name", max_chars=64, value=None)
+        data['product_name_length']['changed'] = right_column.number_input(label="Product Name Length", step=1, min_value=1, value = None)
+        data['product_description_length']['changed'] = right_column.number_input(label="Product Description Length", step=1, min_value=1, value = None)
+        data['product_photos_qty']['changed'] = right_column.number_input(label="Photo qty", step=1, min_value=1, value = None)
+        data['product_weight_g']['changed'] = right_column.number_input(label="Weight (g)", step=1, min_value=1, value = None)
+        data['product_length_cm']['changed'] = right_column.number_input(label="Length (cm)", step=1, min_value=1, value = None)
+        data['product_height_cm']['changed'] = right_column.number_input(label="Height (cm)", step=1, min_value=1, value = None)
+        data['product_width_cm']['changed'] = right_column.number_input(label="Width (cm)", step=1, min_value=1, value = None)
     # with tab_order_items:
     if selected_dataset == "order_items":
         data = {
@@ -2202,15 +2207,15 @@ def update_data():
 
         # New data
         data['order_id']['changed'] = right_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None, key = "order_items_order_id")
-        data['order_item_id']['changed'] = right_column.text_input(label="Item ID", max_chars=32)
+        data['order_item_id']['changed'] = right_column.text_input(label="Item ID", max_chars=32, value=None)
         data['product_id']['changed'] = right_column.selectbox(label="Product ID", options=data['product_id']['limit'], index=None)
         data['seller_id']['changed'] = right_column.selectbox(label="Seller ID", options=data['seller_id']['limit'], index=None, key = "update_new_order_items_seller_id")
         key = "Shipping Limit"
         tmp_date = right_column.date_input(f"{key} - Date")
         tmp_time = right_column.time_input(f"{key} - Time")
         data['shipping_limit_date']['changed'] = (tmp_date, tmp_time)
-        data['price']['changed'] = right_column.number_input(label="Order Price", step=0.01, min_value=0.01)
-        data['freight_value']['changed'] = right_column.number_input(label="Freight Price", step=0.01, min_value=0.01)
+        data['price']['changed'] = right_column.number_input(label="Order Price", step=0.01, min_value=0.01, value = None)
+        data['freight_value']['changed'] = right_column.number_input(label="Freight Price", step=0.01, min_value=0.01, value = None)
     # with tab_order_reviews:
     if selected_dataset == "order_reviews":
         data = {
@@ -2247,9 +2252,9 @@ def update_data():
         data['review_creation_date']['input'] = left_column.slider("Review Creation Date", min_value=data['review_creation_date']['limit'][0], max_value=data['review_creation_date']['limit'][1], value=data['review_creation_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
 
         # New data
-        data['review_id']['changed'] = right_column.text_input(label="Review ID", max_chars=32)
+        data['review_id']['changed'] = right_column.text_input(label="Review ID", max_chars=32, value=None)
         data['order_id']['changed'] = right_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None, key = "order_reviews_order_id")
-        data['review_score']['changed'] = right_column.number_input(label="Review Score", step=1, min_value=1, max_value=5)
+        data['review_score']['changed'] = right_column.number_input(label="Review Score", step=1, min_value=1, max_value=5, value = None)
         key = "Review Creation"
         tmp_date = right_column.date_input(f"{key} - Date")
         tmp_time = None
@@ -2289,21 +2294,23 @@ def update_data():
             record_query += ";"
 
             record_result = connector.query(record_query)
-            if len(record_result) == 0:
-                disable_button = True
-                left_column.error("Searched record doesn't exists with filters")
+            # if len(record_result) == 0:
+            #     disable_button = True
+            #     left_column.error("Searched record doesn't exists with filters")
 
         # Over New data
         # search whether value for foreign key exists
         exist_foreign_key = True
         if foreign_keys is not None:
             for idx in range(len(foreign_keys['local'])):
-                foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['changed']}';" # foreign keys are zip_code or xx_id
+                key = foreign_keys['key'][idx]
+                if data[key]['input'] is not None:
+                    foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['changed']}';" # foreign keys are zip_code or xx_id
 
-                foreign_result = connector.query(foreign_query)
-                if len(foreign_result) == 0:
-                    exist_foreign_key = False;
-                    right_column.error(f"You didn't input an existed value about {foreign_keys['local'][idx]}")
+                    foreign_result = connector.query(foreign_query)
+                    if len(foreign_result) == 0:
+                        exist_foreign_key = False;
+                        right_column.error(f"You didn't input an existed value about {foreign_keys['local'][idx]}")
 
         # search whether value for primary key exists
         exist_primary_key = False
@@ -2349,7 +2356,7 @@ def update_data():
 
         for key in keys:
             if "_id" in key:
-                if (data[key]['input'] is not None):
+                if (data[key]['changed'] is not None):
                     if len(data[key]['changed'].strip()) != 32:
                         right_column.error("You must make ID 32 characters long")
                         disable_button = True
@@ -2388,7 +2395,7 @@ def update_data():
         for key in keys:
             if "zip" in key:
                 if (data[key]['input'] is not None):
-                    if ((len(data[key]['changed'].strip()) != 4) or (len(data[key]['changed'].strip()) != 5)):
+                    if not((len(data[key]['changed'].strip()) != 4) or (len(data[key]['changed'].strip()) != 5)):
                         right_column.error("You must make Zip Code 4 characters or 5 characters long without space")
                         disable_button = True
 
@@ -2409,7 +2416,7 @@ def update_data():
             tmp_key = key
             tmp_value = data[key]['changed']
             if tmp_value is not None:
-                changed_side += "{tmp_key} = {utils.input_preprocessing(tmp_value)}, "
+                changed_side += f"{tmp_key} = {utils.input_preprocessing(tmp_value)}, "
         # remove last comma
         changed_side = changed_side[:-2]
 
@@ -2428,9 +2435,8 @@ def update_data():
 
 
         final_query = f"UPDATE {data['name']} SET {changed_side} WHERE {original_side};"
+        st.session_state.stack.append(connector.checkpoint_add(prepared_name))
         connector.execute(final_query)
-        connector.checkpoint_add(checkpoint="prepared_name")
-        st.session_state.stack.append(prepared_name)
         st.session_state.data_changed = True
         st.rerun()
 
@@ -2450,8 +2456,11 @@ if change_confirm:
     st.session_state.stack = []
     st.session_state.connector.commit()
     st.session_state.connector.start_transaction()
+    st.session_state.data_changed = True
 
 if change_rollback:
-    checkpoint = st.session_state.stack.pop()
-    st.session_state.connector.checkpoint_rollback(checkpoint)
+    if len(st.session_state.stack) != 0:
+        checkpoint = st.session_state.stack.pop()
+        st.session_state.connector.checkpoint_rollback(checkpoint)
+        st.session_state.data_changed = True
 
