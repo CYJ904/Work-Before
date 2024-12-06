@@ -907,14 +907,15 @@ else:
         if st.session_state.query == "":
             right_column.write("Please click submit for search data.")
         else:
-            st.session_state.result = connector.query(st.session_state.query)
+            # st.session_state.result = connector.query(st.session_state.query)
             right_column.dataframe(connector.query(st.session_state.query), height = config.table_height, use_container_width = True)
     else:
         if st.session_state.query == "":
             right_column.write("Please click submit for search data.")
         else:
             # st.session_state.result = connector.query(st.session_state.query)
-            right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width  = True)
+            # right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width  = True)
+            right_column.dataframe(connector.query(st.session_state.query), height = config.table_height, use_container_width  = True)
 
 # Solving behavior: Add 
 
@@ -1294,7 +1295,7 @@ def add_data():
         exist_foreign_key = True
         if foreign_keys is not None:
             for idx in range(len(foreign_keys['local'])):
-                key = foreign_keys['key'][idx]
+                key = foreign_keys['local'][idx]
                 if data[key]['input'] is not None:
                     foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['input']}';" # foreign keys are zip_code or xx_id
 
@@ -1478,10 +1479,10 @@ def delete_data():
 
         # Input widgets # no wrong input type handling
         data['geolocation_zip_code_prefix']['input'] = st.selectbox(label="Zip Code", options=data['geolocation_zip_code_prefix']['limit'], index=None)
-        data['geolocation_lat']['input'] = st.slider(label="Latitude", min_value=data['geolocation_lat']['limit'][0], max_value=data['geolocation_lat']['limit'][1], value=data['geolocation_lat']['limit'], step=config.accuracy)
-        data['geolocation_lng']['input'] = st.slider(label="Longtitude", min_value=data['geolocation_lng']['limit'][0], max_value=data['geolocation_lng']['limit'][1], value=data['geolocation_lng']['limit'], step=config.accuracy)
-        data['geolocation_city']['input'] = st.selectbox(label="City", options = data['geolocation_city']['limit'], index=None)
-        data['geolocation_state']['input'] = st.selectbox(label="State", options = data['geolocation_state']['limit'], index=None)
+        # data['geolocation_lat']['input'] = st.slider(label="Latitude", min_value=data['geolocation_lat']['limit'][0], max_value=data['geolocation_lat']['limit'][1], value=data['geolocation_lat']['limit'], step=config.accuracy)
+        # data['geolocation_lng']['input'] = st.slider(label="Longtitude", min_value=data['geolocation_lng']['limit'][0], max_value=data['geolocation_lng']['limit'][1], value=data['geolocation_lng']['limit'], step=config.accuracy)
+        # data['geolocation_city']['input'] = st.selectbox(label="City", options = data['geolocation_city']['limit'], index=None)
+        # data['geolocation_state']['input'] = st.selectbox(label="State", options = data['geolocation_state']['limit'], index=None)
     if selected_dataset == "sellers":
         data = {
                 "name": "sellers",
@@ -1503,8 +1504,8 @@ def delete_data():
         # Input widgets # no wrong input type handling
         data['seller_id']['input'] = st.selectbox(label="ID", options=data['seller_id']['limit'], index = None)
         data['seller_zip_code_prefix']['input'] = st.selectbox(label="zip_code", options=data['seller_zip_code_prefix']['limit'], index = None)
-        data['seller_city']['input'] = st.selectbox(label="City", options=data['seller_city']['limit'], index = None)
-        data['seller_state']['input'] = st.selectbox(label="State", options=data['seller_state']['limit'], index = None)
+        # data['seller_city']['input'] = st.selectbox(label="City", options=data['seller_city']['limit'], index = None)
+        # data['seller_state']['input'] = st.selectbox(label="State", options=data['seller_state']['limit'], index = None)
     if selected_dataset == "customers":
         data = { 
                 "name": "customers",
@@ -1529,8 +1530,8 @@ def delete_data():
         data['customer_id']['input'] = st.selectbox(label="ID", options=data['customer_id']['limit'], index = None)
         data['customer_unique_id']['input'] = st.selectbox(label="Unique_ID", options=data['customer_unique_id']['limit'], index = None)
         data['customer_zip_code_prefix']['input'] = st.selectbox(label="zip_code", options=data['customer_zip_code_prefix']['limit'], index = None, key="delete_customer_zip_code_prefix")
-        data['customer_city']['input'] = st.selectbox(label="City", options=data['customer_city']['limit'], index = None)
-        data['customer_city']['input'] = st.selectbox(label="State", options=data['customer_state']['limit'], index = None)
+        # data['customer_city']['input'] = st.selectbox(label="City", options=data['customer_city']['limit'], index = None)
+        # data['customer_city']['input'] = st.selectbox(label="State", options=data['customer_state']['limit'], index = None)
     if selected_dataset == "orders":
         data = {
                 "name": "orders",
@@ -1576,12 +1577,12 @@ def delete_data():
         # Input widgets # no wrong input type handling
         data['order_id']['input'] = st.selectbox(label="Order ID", options=data['order_id']['limit'], index=None)
         data['customer_id']['input'] = st.selectbox(label="Customer ID", options=data['customer_id']['limit'], index=None)
-        data['order_status']['input'] = st.selectbox(label="Status", options=data['order_status']['limit'], index=None)
-        data['order_purchase_timestamp']['input'] = st.slider("Purchase time", min_value=data['order_purchase_timestamp']['limit'][0], max_value=data['order_purchase_timestamp']['limit'][1], value=data['order_purchase_timestamp']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_approved_at']['input'] = st.slider("Approved time", min_value=data['order_approved_at']['limit'][0], max_value=data['order_approved_at']['limit'][1], value=data['order_approved_at']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_delivered_carrier_date']['input'] = st.slider("Delivered Carrier Date", min_value=data['order_delivered_carrier_date']['limit'][0], max_value=data['order_delivered_carrier_date']['limit'][1], value=data['order_delivered_carrier_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_delivered_customer_date']['input'] = st.slider("Delivered Customer Date", min_value=data['order_delivered_customer_date']['limit'][0], max_value=data['order_delivered_customer_date']['limit'][1], value=data['order_delivered_customer_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_estimated_delivery_date']['input'] = st.slider("Estimated Delivery Date", min_value=data['order_estimated_delivery_date']['limit'][0], max_value=data['order_estimated_delivery_date']['limit'][1], value=data['order_estimated_delivery_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+        # data['order_status']['input'] = st.selectbox(label="Status", options=data['order_status']['limit'], index=None)
+        # data['order_purchase_timestamp']['input'] = st.slider("Purchase time", min_value=data['order_purchase_timestamp']['limit'][0], max_value=data['order_purchase_timestamp']['limit'][1], value=data['order_purchase_timestamp']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        # data['order_approved_at']['input'] = st.slider("Approved time", min_value=data['order_approved_at']['limit'][0], max_value=data['order_approved_at']['limit'][1], value=data['order_approved_at']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        # data['order_delivered_carrier_date']['input'] = st.slider("Delivered Carrier Date", min_value=data['order_delivered_carrier_date']['limit'][0], max_value=data['order_delivered_carrier_date']['limit'][1], value=data['order_delivered_carrier_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        # data['order_delivered_customer_date']['input'] = st.slider("Delivered Customer Date", min_value=data['order_delivered_customer_date']['limit'][0], max_value=data['order_delivered_customer_date']['limit'][1], value=data['order_delivered_customer_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        # data['order_estimated_delivery_date']['input'] = st.slider("Estimated Delivery Date", min_value=data['order_estimated_delivery_date']['limit'][0], max_value=data['order_estimated_delivery_date']['limit'][1], value=data['order_estimated_delivery_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
     if selected_dataset == "order_payments":
         data = {
                 "name": "order_payments", 
@@ -1611,9 +1612,9 @@ def delete_data():
         # Input widgets # no wrong input type handling
         data['order_id']['input'] = st.selectbox(label = "Order ID", options = data['order_id']['limit'], index = None, key="update_order_payments_order_id")
         data['payment_sequential']['input'] = st.selectbox(label = "Payment Sequential", options=data['payment_sequential']['limit'], index=None)
-        data['payment_type']['input'] = st.selectbox(label="Payment Type", options=data['payment_type']['limit'], index = None)
-        data['payment_installments']['input'] = st.selectbox(label="Payment Installments", options=data['payment_installments']['limit'], index = None)
-        data['payment_value']['input'] = st.slider("Payment Value", min_value=data['payment_value']['limit'][0], max_value=data['payment_value']['limit'][1], value=data['payment_value']['limit'], step=config.concurrency)
+        # data['payment_type']['input'] = st.selectbox(label="Payment Type", options=data['payment_type']['limit'], index = None)
+        # data['payment_installments']['input'] = st.selectbox(label="Payment Installments", options=data['payment_installments']['limit'], index = None)
+        # data['payment_value']['input'] = st.slider("Payment Value", min_value=data['payment_value']['limit'][0], max_value=data['payment_value']['limit'][1], value=data['payment_value']['limit'], step=config.concurrency)
     if selected_dataset == "products":
         data = {
                 "name": "products",
@@ -1672,14 +1673,14 @@ def delete_data():
 
         # Input widgets # no wrong input type handling
         data['product_id']['input'] = st.selectbox(label="Product ID", options = data['product_id']['limit'], index=None)
-        data['product_category_name']['input'] = st.selectbox(label="Product Category", options=data['product_category_name']['limit'], index = None)
-        data['product_name_length']['input'] = st.slider(label="Name Length", min_value=data['product_name_length']['limit'][0], max_value=data['product_name_length']['limit'][1], value=data['product_name_length']['limit'], step=config.integer)
-        data['product_description_length']['input'] = st.slider(label="Description Length", min_value=data['product_description_length']['limit'][0], max_value=data['product_description_length']['limit'][1], value=data['product_description_length']['limit'], step=config.integer)
-        data['product_photos_qty']['input'] = st.slider(label="Photo Quantity", min_value=data['product_photos_qty']['limit'][0], max_value=data['product_photos_qty']['limit'][1], value=data['product_photos_qty']['limit'], step=config.integer)
-        data['product_weight_g']['input'] = st.slider(label="Weight in gram", min_value=data['product_weight_g']['limit'][0], max_value=data['product_weight_g']['limit'][1], value=data['product_weight_g']['limit'], step=config.integer)
-        data['product_length_cm']['input'] = st.slider(label="Length in cm", min_value=data['product_length_cm']['limit'][0], max_value=data['product_length_cm']['limit'][1], value=data['product_length_cm']['limit'], step=config.integer)
-        data['product_height_cm']['input'] = st.slider(label="Height in cm", min_value=data['product_height_cm']['limit'][0], max_value=data['product_height_cm']['limit'][1], value=data['product_height_cm']['limit'], step=config.integer)
-        data['product_width_cm']['input'] = st.slider(label="Width in cm", min_value=data['product_width_cm']['limit'][0], max_value=data['product_width_cm']['limit'][1], value=data['product_width_cm']['limit'], step=config.integer)
+        # data['product_category_name']['input'] = st.selectbox(label="Product Category", options=data['product_category_name']['limit'], index = None)
+        # data['product_name_length']['input'] = st.slider(label="Name Length", min_value=data['product_name_length']['limit'][0], max_value=data['product_name_length']['limit'][1], value=data['product_name_length']['limit'], step=config.integer)
+        # data['product_description_length']['input'] = st.slider(label="Description Length", min_value=data['product_description_length']['limit'][0], max_value=data['product_description_length']['limit'][1], value=data['product_description_length']['limit'], step=config.integer)
+        # data['product_photos_qty']['input'] = st.slider(label="Photo Quantity", min_value=data['product_photos_qty']['limit'][0], max_value=data['product_photos_qty']['limit'][1], value=data['product_photos_qty']['limit'], step=config.integer)
+        # data['product_weight_g']['input'] = st.slider(label="Weight in gram", min_value=data['product_weight_g']['limit'][0], max_value=data['product_weight_g']['limit'][1], value=data['product_weight_g']['limit'], step=config.integer)
+        # data['product_length_cm']['input'] = st.slider(label="Length in cm", min_value=data['product_length_cm']['limit'][0], max_value=data['product_length_cm']['limit'][1], value=data['product_length_cm']['limit'], step=config.integer)
+        # data['product_height_cm']['input'] = st.slider(label="Height in cm", min_value=data['product_height_cm']['limit'][0], max_value=data['product_height_cm']['limit'][1], value=data['product_height_cm']['limit'], step=config.integer)
+        # data['product_width_cm']['input'] = st.slider(label="Width in cm", min_value=data['product_width_cm']['limit'][0], max_value=data['product_width_cm']['limit'][1], value=data['product_width_cm']['limit'], step=config.integer)
     if selected_dataset == "order_items":
         data = {
                 "name": "order_items",
@@ -1716,11 +1717,11 @@ def delete_data():
         # Input widgets # no wrong input type handling
         data['order_id']['input'] = st.selectbox(label="Order ID", options = data['order_id']['limit'], index=None, key="update_order_items_order_id")
         data['order_item_id']['input'] = st.selectbox(label="Order Item ID", options=data['order_item_id']['limit'], index=None)
-        data['product_id']['input'] = st.selectbox(label="Product ID", options=data['product_id']['limit'], index=None, key="order_items-product_id")
-        data['seller_id']['input'] = st.selectbox(label="Seller ID", options=data['seller_id']['limit'], index=None)
-        data['shipping_limit_date']['input'] = st.slider("Shipping Limit Date", min_value=data['shipping_limit_date']['limit'][0], max_value=data['shipping_limit_date']['limit'][1], value=data['shipping_limit_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
-        data['price']['input'] = st.slider("Price", min_value=data['price']['limit'][0], max_value=data['price']['limit'][1], value=data['price']['limit'], step=config.concurrency)
-        data['freight_value']['input'] = st.slider("Freight Value", min_value=data['freight_value']['limit'][0], max_value=data['freight_value']['limit'][1], value=data['freight_value']['limit'], step=config.concurrency)
+        # data['product_id']['input'] = st.selectbox(label="Product ID", options=data['product_id']['limit'], index=None, key="order_items-product_id")
+        # data['seller_id']['input'] = st.selectbox(label="Seller ID", options=data['seller_id']['limit'], index=None)
+        # data['shipping_limit_date']['input'] = st.slider("Shipping Limit Date", min_value=data['shipping_limit_date']['limit'][0], max_value=data['shipping_limit_date']['limit'][1], value=data['shipping_limit_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+        # data['price']['input'] = st.slider("Price", min_value=data['price']['limit'][0], max_value=data['price']['limit'][1], value=data['price']['limit'], step=config.concurrency)
+        # data['freight_value']['input'] = st.slider("Freight Value", min_value=data['freight_value']['limit'][0], max_value=data['freight_value']['limit'][1], value=data['freight_value']['limit'], step=config.concurrency)
     if selected_dataset == "order_reviews":
         data = {
                 "name": "order_reviews",
@@ -1749,8 +1750,8 @@ def delete_data():
         # Input widgets # no wrong input type handling
         data['review_id']['input'] = st.selectbox("Review ID", options=data['review_id']['limit'], index=None)
         data['order_id']['input'] = st.selectbox("order_id", options=data['order_id']['limit'], index=None)
-        data['review_score']['input'] = st.slider("Review Score", min_value=data['review_score']['limit'][0], max_value=data['review_score']['limit'][1], value = data['review_score']['limit'], step=config.integer)
-        data['review_creation_date']['input'] = st.slider("Review Creation Date", min_value=data['review_creation_date']['limit'][0], max_value=data['review_creation_date']['limit'][1], value=data['review_creation_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+        # data['review_score']['input'] = st.slider("Review Score", min_value=data['review_score']['limit'][0], max_value=data['review_score']['limit'][1], value = data['review_score']['limit'], step=config.integer)
+        # data['review_creation_date']['input'] = st.slider("Review Creation Date", min_value=data['review_creation_date']['limit'][0], max_value=data['review_creation_date']['limit'][1], value=data['review_creation_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
 
     if data is None:
         disable_button = True
@@ -1873,10 +1874,10 @@ def update_data():
 
         # Original data
         data['geolocation_zip_code_prefix']['input'] = left_column.selectbox(label="Zip Code", options=data['geolocation_zip_code_prefix']['limit'], index=None)
-        data['geolocation_lat']['input'] = left_column.slider(label="Latitude", min_value=data['geolocation_lat']['limit'][0], max_value=data['geolocation_lat']['limit'][1], value=data['geolocation_lat']['limit'], step=config.accuracy)
-        data['geolocation_lng']['input'] = left_column.slider(label="Longtitude", min_value=data['geolocation_lng']['limit'][0], max_value=data['geolocation_lng']['limit'][1], value=data['geolocation_lng']['limit'], step=config.accuracy)
-        data['geolocation_city']['input'] = left_column.selectbox(label="City", options = data['geolocation_city']['limit'], index=None)
-        data['geolocation_state']['input'] = left_column.selectbox(label="State", options = data['geolocation_state']['limit'], index=None)
+        # data['geolocation_lat']['input'] = left_column.slider(label="Latitude", min_value=data['geolocation_lat']['limit'][0], max_value=data['geolocation_lat']['limit'][1], value=data['geolocation_lat']['limit'], step=config.accuracy)
+        # data['geolocation_lng']['input'] = left_column.slider(label="Longtitude", min_value=data['geolocation_lng']['limit'][0], max_value=data['geolocation_lng']['limit'][1], value=data['geolocation_lng']['limit'], step=config.accuracy)
+        # data['geolocation_city']['input'] = left_column.selectbox(label="City", options = data['geolocation_city']['limit'], index=None)
+        # data['geolocation_state']['input'] = left_column.selectbox(label="State", options = data['geolocation_state']['limit'], index=None)
 
         # New data
         data['geolocation_zip_code_prefix']['changed'] = right_column.text_input(label="zip_code_prefix", max_chars=5, value=None)
@@ -1908,9 +1909,9 @@ def update_data():
 
         # Original data
         data['seller_id']['input'] = left_column.selectbox(label="ID", options=data['seller_id']['limit'], index = None)
-        data['seller_zip_code_prefix']['input'] = left_column.selectbox(label="zip_code", options=data['seller_zip_code_prefix']['limit'], index = None)
-        data['seller_city']['input'] = left_column.selectbox(label="City", options=data['seller_city']['limit'], index = None)
-        data['seller_state']['input'] = left_column.selectbox(label="State", options=data['seller_state']['limit'], index = None)
+        # data['seller_zip_code_prefix']['input'] = left_column.selectbox(label="zip_code", options=data['seller_zip_code_prefix']['limit'], index = None)
+        # data['seller_city']['input'] = left_column.selectbox(label="City", options=data['seller_city']['limit'], index = None)
+        # data['seller_state']['input'] = left_column.selectbox(label="State", options=data['seller_state']['limit'], index = None)
 
 
         # New data
@@ -1944,10 +1945,10 @@ def update_data():
 
         # Original data
         data['customer_id']['input'] = left_column.selectbox(label="ID", options=data['customer_id']['limit'], index = None)
-        data['customer_unique_id']['input'] = left_column.selectbox(label="Unique_ID", options=data['customer_unique_id']['limit'], index = None)
-        data['customer_zip_code_prefix']['input'] = left_column.selectbox(label="zip_code", options=data['customer_zip_code_prefix']['limit'], index = None, key="delete_customer_zip_code_prefix")
-        data['customer_city']['input'] = left_column.selectbox(label="City", options=data['customer_city']['limit'], index = None)
-        data['customer_city']['input'] = left_column.selectbox(label="State", options=data['customer_state']['limit'], index = None)
+        # data['customer_unique_id']['input'] = left_column.selectbox(label="Unique_ID", options=data['customer_unique_id']['limit'], index = None)
+        # data['customer_zip_code_prefix']['input'] = left_column.selectbox(label="zip_code", options=data['customer_zip_code_prefix']['limit'], index = None, key="delete_customer_zip_code_prefix")
+        # data['customer_city']['input'] = left_column.selectbox(label="City", options=data['customer_city']['limit'], index = None)
+        # data['customer_city']['input'] = left_column.selectbox(label="State", options=data['customer_state']['limit'], index = None)
 
         # New data
         data['customer_id']['changed'] = right_column.text_input(label="Account ID", max_chars=32, value=None)
@@ -2003,13 +2004,13 @@ def update_data():
 
         # Original data
         data['order_id']['input'] = left_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None)
-        data['customer_id']['input'] = left_column.selectbox(label="Customer ID", options=data['customer_id']['limit'], index=None)
-        data['order_status']['input'] = left_column.selectbox(label="Status", options=data['order_status']['limit'], index=None)
-        data['order_purchase_timestamp']['input'] = left_column.slider("Purchase time", min_value=data['order_purchase_timestamp']['limit'][0], max_value=data['order_purchase_timestamp']['limit'][1], value=data['order_purchase_timestamp']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_approved_at']['input'] = left_column.slider("Approved time", min_value=data['order_approved_at']['limit'][0], max_value=data['order_approved_at']['limit'][1], value=data['order_approved_at']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_delivered_carrier_date']['input'] = left_column.slider("Delivered Carrier Date", min_value=data['order_delivered_carrier_date']['limit'][0], max_value=data['order_delivered_carrier_date']['limit'][1], value=data['order_delivered_carrier_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_delivered_customer_date']['input'] = left_column.slider("Delivered Customer Date", min_value=order_delivered_customer_date_min, max_value=order_delivered_customer_date_max, value=(order_delivered_customer_date_min, order_delivered_customer_date_max), step=config.time['step']['second'], format=config.time['format']['long'])
-        data['order_estimated_delivery_date']['input'] = left_column.slider("Estimated Delivery Date", min_value=data['order_estimated_delivery_date']['limit'][0], max_value=data['order_estimated_delivery_date']['limit'][1], value=data['order_estimated_delivery_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+        # data['customer_id']['input'] = left_column.selectbox(label="Customer ID", options=data['customer_id']['limit'], index=None)
+        # data['order_status']['input'] = left_column.selectbox(label="Status", options=data['order_status']['limit'], index=None)
+        # data['order_purchase_timestamp']['input'] = left_column.slider("Purchase time", min_value=data['order_purchase_timestamp']['limit'][0], max_value=data['order_purchase_timestamp']['limit'][1], value=data['order_purchase_timestamp']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        # data['order_approved_at']['input'] = left_column.slider("Approved time", min_value=data['order_approved_at']['limit'][0], max_value=data['order_approved_at']['limit'][1], value=data['order_approved_at']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        # data['order_delivered_carrier_date']['input'] = left_column.slider("Delivered Carrier Date", min_value=data['order_delivered_carrier_date']['limit'][0], max_value=data['order_delivered_carrier_date']['limit'][1], value=data['order_delivered_carrier_date']['limit'], step=config.time['step']['second'], format=config.time['format']['long'])
+        # data['order_delivered_customer_date']['input'] = left_column.slider("Delivered Customer Date", min_value=order_delivered_customer_date_min, max_value=order_delivered_customer_date_max, value=(order_delivered_customer_date_min, order_delivered_customer_date_max), step=config.time['step']['second'], format=config.time['format']['long'])
+        # data['order_estimated_delivery_date']['input'] = left_column.slider("Estimated Delivery Date", min_value=data['order_estimated_delivery_date']['limit'][0], max_value=data['order_estimated_delivery_date']['limit'][1], value=data['order_estimated_delivery_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
 
         # New data
         data['order_id']['changed'] = right_column.text_input(label="Order ID", max_chars=32, value=None)
@@ -2068,9 +2069,9 @@ def update_data():
         # Original data
         data['order_id']['input'] = left_column.selectbox(label = "Order ID", options = data['order_id']['limit'], index = None, key="update_order_payments_order_id")
         data['payment_sequential']['input'] = left_column.selectbox(label = "Payment Sequential", options=data['payment_sequential']['limit'], index=None)
-        data['payment_type']['input'] = left_column.selectbox(label="Payment Type", options=data['payment_type']['limit'], index = None)
-        data['payment_installments']['input'] = left_column.selectbox(label="Payment Installments", options=data['payment_installments']['limit'], index = None)
-        data['payment_value']['input'] = left_column.slider("Payment Value", min_value=data['payment_value']['limit'][0], max_value=data['payment_value']['limit'][1], value=data['payment_value']['limit'], step=config.concurrency)
+        # data['payment_type']['input'] = left_column.selectbox(label="Payment Type", options=data['payment_type']['limit'], index = None)
+        # data['payment_installments']['input'] = left_column.selectbox(label="Payment Installments", options=data['payment_installments']['limit'], index = None)
+        # data['payment_value']['input'] = left_column.slider("Payment Value", min_value=data['payment_value']['limit'][0], max_value=data['payment_value']['limit'][1], value=data['payment_value']['limit'], step=config.concurrency)
 
         # New data
         data['order_id']['changed'] = right_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None)
@@ -2140,14 +2141,14 @@ def update_data():
 
         # Original data
         data['product_id']['input'] = left_column.selectbox(label="Product ID", options = data['product_id']['limit'], index=None)
-        data['product_category_name']['input'] = left_column.selectbox(label="Product Category", options=data['product_category_name']['limit'], index = None)
-        data['product_name_length']['input'] = left_column.slider(label="Name Length", min_value=data['product_name_length']['limit'][0], max_value=data['product_name_length']['limit'][1], value=data['product_name_length']['limit'], step=config.integer)
-        data['product_description_length']['input'] = left_column.slider(label="Description Length", min_value=data['product_description_length']['limit'][0], max_value=data['product_description_length']['limit'][1], value=data['product_description_length']['limit'], step=config.integer)
-        data['product_photos_qty']['input'] = left_column.slider(label="Photo Quantity", min_value=data['product_photos_qty']['limit'][0], max_value=data['product_photos_qty']['limit'][1], value=data['product_photos_qty']['limit'], step=config.integer)
-        data['product_weight_g']['input'] = left_column.slider(label="Weight in gram", min_value=data['product_weight_g']['limit'][0], max_value=data['product_weight_g']['limit'][1], value=data['product_weight_g']['limit'], step=config.integer)
-        data['product_length_cm']['input'] = left_column.slider(label="Length in cm", min_value=data['product_length_cm']['limit'][0], max_value=data['product_length_cm']['limit'][1], value=data['product_length_cm']['limit'], step=config.integer)
-        data['product_height_cm']['input'] = left_column.slider(label="Height in cm", min_value=data['product_height_cm']['limit'][0], max_value=data['product_height_cm']['limit'][1], value=data['product_height_cm']['limit'], step=config.integer)
-        data['product_width_cm']['input'] = left_column.slider(label="Width in cm", min_value=data['product_width_cm']['limit'][0], max_value=data['product_width_cm']['limit'][1], value=data['product_width_cm']['limit'], step=config.integer)
+        # data['product_category_name']['input'] = left_column.selectbox(label="Product Category", options=data['product_category_name']['limit'], index = None)
+        # data['product_name_length']['input'] = left_column.slider(label="Name Length", min_value=data['product_name_length']['limit'][0], max_value=data['product_name_length']['limit'][1], value=data['product_name_length']['limit'], step=config.integer)
+        # data['product_description_length']['input'] = left_column.slider(label="Description Length", min_value=data['product_description_length']['limit'][0], max_value=data['product_description_length']['limit'][1], value=data['product_description_length']['limit'], step=config.integer)
+        # data['product_photos_qty']['input'] = left_column.slider(label="Photo Quantity", min_value=data['product_photos_qty']['limit'][0], max_value=data['product_photos_qty']['limit'][1], value=data['product_photos_qty']['limit'], step=config.integer)
+        # data['product_weight_g']['input'] = left_column.slider(label="Weight in gram", min_value=data['product_weight_g']['limit'][0], max_value=data['product_weight_g']['limit'][1], value=data['product_weight_g']['limit'], step=config.integer)
+        # data['product_length_cm']['input'] = left_column.slider(label="Length in cm", min_value=data['product_length_cm']['limit'][0], max_value=data['product_length_cm']['limit'][1], value=data['product_length_cm']['limit'], step=config.integer)
+        # data['product_height_cm']['input'] = left_column.slider(label="Height in cm", min_value=data['product_height_cm']['limit'][0], max_value=data['product_height_cm']['limit'][1], value=data['product_height_cm']['limit'], step=config.integer)
+        # data['product_width_cm']['input'] = left_column.slider(label="Width in cm", min_value=data['product_width_cm']['limit'][0], max_value=data['product_width_cm']['limit'][1], value=data['product_width_cm']['limit'], step=config.integer)
 
         # New data
         data['product_id']['changed'] = right_column.text_input(label="Product ID", max_chars=32, value=None)
@@ -2199,11 +2200,11 @@ def update_data():
         # Original data
         data['order_id']['input'] = left_column.selectbox(label="Order ID", options = data['order_id']['limit'], index=None, key="update_order_items_order_id")
         data['order_item_id']['input'] = left_column.selectbox(label="Order Item ID", options=data['order_item_id']['limit'], index=None)
-        data['product_id']['input'] = left_column.selectbox(label="Product ID", options=data['product_id']['limit'], index=None, key="order_items-product_id")
-        data['seller_id']['input'] = left_column.selectbox(label="Seller ID", options=data['seller_id']['limit'], index=None)
-        data['shipping_limit_date']['input'] = left_column.slider("Shipping Limit Date", min_value=data['shipping_limit_date']['limit'][0], max_value=data['shipping_limit_date']['limit'][1], value=data['shipping_limit_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
-        data['price']['input'] = left_column.slider("Price", min_value=data['price']['limit'][0], max_value=data['price']['limit'][1], value=data['price']['limit'], step=config.concurrency)
-        data['freight_value']['input'] = left_column.slider("Freight Value", min_value=data['freight_value']['limit'][0], max_value=data['freight_value']['limit'][1], value=data['freight_value']['limit'], step=config.concurrency)
+        # data['product_id']['input'] = left_column.selectbox(label="Product ID", options=data['product_id']['limit'], index=None, key="order_items-product_id")
+        # data['seller_id']['input'] = left_column.selectbox(label="Seller ID", options=data['seller_id']['limit'], index=None)
+        # data['shipping_limit_date']['input'] = left_column.slider("Shipping Limit Date", min_value=data['shipping_limit_date']['limit'][0], max_value=data['shipping_limit_date']['limit'][1], value=data['shipping_limit_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+        # data['price']['input'] = left_column.slider("Price", min_value=data['price']['limit'][0], max_value=data['price']['limit'][1], value=data['price']['limit'], step=config.concurrency)
+        # data['freight_value']['input'] = left_column.slider("Freight Value", min_value=data['freight_value']['limit'][0], max_value=data['freight_value']['limit'][1], value=data['freight_value']['limit'], step=config.concurrency)
 
         # New data
         data['order_id']['changed'] = right_column.selectbox(label="Order ID", options=data['order_id']['limit'], index=None, key = "order_items_order_id")
@@ -2248,8 +2249,8 @@ def update_data():
         # Original data
         data['review_id']['input'] = left_column.selectbox("Review ID", options=data['review_id']['limit'], index=None)
         data['order_id']['input'] = left_column.selectbox("order_id", options=data['order_id']['limit'], index=None)
-        data['review_score']['input'] = left_column.slider("Review Score", min_value=data['review_score']['limit'][0], max_value=data['review_score']['limit'][1], value = data['review_score']['limit'], step=config.integer)
-        data['review_creation_date']['input'] = left_column.slider("Review Creation Date", min_value=data['review_creation_date']['limit'][0], max_value=data['review_creation_date']['limit'][1], value=data['review_creation_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
+        # data['review_score']['input'] = left_column.slider("Review Score", min_value=data['review_score']['limit'][0], max_value=data['review_score']['limit'][1], value = data['review_score']['limit'], step=config.integer)
+        # data['review_creation_date']['input'] = left_column.slider("Review Creation Date", min_value=data['review_creation_date']['limit'][0], max_value=data['review_creation_date']['limit'][1], value=data['review_creation_date']['limit'], step=config.time['step']['day'], format=config.time['format']['short'])
 
         # New data
         data['review_id']['changed'] = right_column.text_input(label="Review ID", max_chars=32, value=None)
