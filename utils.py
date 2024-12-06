@@ -1,6 +1,3 @@
-# a method load all table names in database
-# a method load all key names in a table
-# a method load all foreign key over a table
 import streamlit as st
 import yaml
 import random

@@ -22,6 +22,7 @@ from datetime import timedelta
 #| geolocation    | geolocation_zip_code_prefix | NULL                  | NULL                        |
 #+----------------+-----------------------------+-----------------------+-----------------------------+
 
+table_height = 900
 page_height = 1030
 show_all_edge = True
 default_table = "orders"
