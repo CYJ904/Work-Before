@@ -30,6 +30,7 @@ concurrency = 0.01
 integer = 1
 page_split = [1,2]
 length = 10 # length of random string for savepoint
+table_height = 900
 
 timefstr = {}
 timefstr['long'] = "%Y-%m-%d %H:%M:%S"

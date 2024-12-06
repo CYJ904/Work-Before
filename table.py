@@ -960,7 +960,7 @@ else:
     if st.session_state.query == "":
         right_column.write("Please click submit for search data.")
     else:
-        right_column.dataframe(st.session_state.result)
+        right_column.dataframe(st.session_state.result, height = config.table_height)
 
 # Solving behavior: Add 
 
