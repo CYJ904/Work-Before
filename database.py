@@ -11,6 +11,24 @@ class MariaDBConnection:
         self.cursor = None
         print("Initialized")
 
+    def create_user_and_grant_privileges(self):
+        try:
+            print("Checking and creating user if necessary...")
+            # SQL statements to ensure user and privileges exist
+            create_user_query = "CREATE USER IF NOT EXISTS 'user_431'@'%' IDENTIFIED BY 'user_431';"
+            grant_privileges_query = "GRANT ALL PRIVILEGES ON source.* TO 'user_431'@'%';"
+            flush_privileges_query = "FLUSH PRIVILEGES;"
+
+            # Execute the statements
+            self.cursor.execute(create_user_query)
+            self.cursor.execute(grant_privileges_query)
+            self.cursor.execute(flush_privileges_query)
+            self.connection.commit()
+            print("User created and privileges granted successfully (if not already existed).")
+        except mariadb.Error as e:
+            print(f"Error ensuring user existence or granting privileges: {e}")
+            raise
+
     def connect(self):
         print("Start Connection")
         try:
