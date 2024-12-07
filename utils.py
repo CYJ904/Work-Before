@@ -234,6 +234,7 @@ class NewConnector:
 
     def checkpoint_add(self, checkpoint):
         self.cursor.execute(f"SAVEPOINT {checkpoint};")
+        print(f"savepoint {checkpoint} executed")
         return checkpoint
 
     def commit(self):

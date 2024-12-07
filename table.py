@@ -13,9 +13,11 @@ import string
 
 
 st.set_page_config(layout="wide", initial_sidebar_state="auto")
-with open('config.yaml', 'r') as file:
-    database_config = yaml.safe_load(file)
+# with open('config.yaml', 'r') as file:
+#     database_config = yaml.safe_load(file)
 
+if "counter" not in st.session_state:
+    st.session_state.counter = [0,0]
 
 if "stack" not in st.session_state:
     st.session_state.stack = []
@@ -70,6 +72,7 @@ buttom_table_add = area_add.button(label="Add", use_container_width=True)
 buttom_table_delete = area_delete.button(label="Delete", use_container_width=True)
 buttom_table_update = area_update.button(label="Update", use_container_width=True)
 
+update_change = table_and_change.button(label="Flush", use_container_width=True)
 
 table_list = table_and_change.container(border=True)
 table_list_checkbox=[]
@@ -175,19 +178,19 @@ if has_selected_table:
 
     for name, status in zip(database_config['table_name'], table_list_checkbox):
         if name == 'geolocation' and status:
-            geolocation_zip_code_prefix_list = connector.get_single_unique(name, "geolocation_zip_code_prefix").astype(str).tolist()
+            geolocation_zip_code_prefix_list = st.session_state.connector.get_single_unique(name, "geolocation_zip_code_prefix").astype(str).tolist()
 
-            geolocation_latitude_min, geolocation_latitude_max = connector.get_single_min_max(name, "geolocation_lat")
+            geolocation_latitude_min, geolocation_latitude_max = st.session_state.connector.get_single_min_max(name, "geolocation_lat")
             geolocation_latitude_min = float(geolocation_latitude_min.iloc[0])
             geolocation_latitude_max = float(geolocation_latitude_max.iloc[0])
 
-            geolocation_longtitude_min, geolocation_longtitude_max =connector.get_single_min_max(name, "geolocation_lng")
+            geolocation_longtitude_min, geolocation_longtitude_max = st.session_state.connector.get_single_min_max(name, "geolocation_lng")
             geolocation_longtitude_min = float(geolocation_longtitude_min.iloc[0])
             geolocation_longtitude_max = float(geolocation_longtitude_max.iloc[0])
 
-            geolocation_city_list = connector.get_single_unique(name, 'geolocation_city').astype(str).tolist()
+            geolocation_city_list = st.session_state.connector.get_single_unique(name, 'geolocation_city').astype(str).tolist()
 
-            geolocation_state_list = connector.get_single_unique(name, 'geolocation_state').astype(str).tolist()
+            geolocation_state_list = st.session_state.connector.get_single_unique(name, 'geolocation_state').astype(str).tolist()
 
 
             filters[name] = filter_area.expander(label = name)
@@ -199,13 +202,13 @@ if has_selected_table:
             filters_geolocation['geolocation_city'] = filters[name].selectbox(label="City", options = geolocation_city_list, index=None)
             filters_geolocation['geolocation_state'] = filters[name].selectbox(label="State", options = geolocation_state_list, index=None)
         elif name == 'sellers' and status:
-            seller_id_list = connector.get_single_unique(name, "seller_id").astype(str).tolist()
+            seller_id_list = st.session_state.connector.get_single_unique(name, "seller_id").astype(str).tolist()
 
-            seller_zip_code_prefix_list = connector.get_single_unique(name, "seller_zip_code_prefix").astype(str).tolist()
+            seller_zip_code_prefix_list = st.session_state.connector.get_single_unique(name, "seller_zip_code_prefix").astype(str).tolist()
 
-            seller_city_list = connector.get_single_unique(name, 'seller_city').astype(str).tolist()
+            seller_city_list = st.session_state.connector.get_single_unique(name, 'seller_city').astype(str).tolist()
 
-            seller_state_list = connector.get_single_unique(name, 'seller_state').astype(str).tolist()
+            seller_state_list = st.session_state.connector.get_single_unique(name, 'seller_state').astype(str).tolist()
 
             filters[name] = filter_area.expander(label = name)
 
@@ -214,15 +217,15 @@ if has_selected_table:
             filters_sellers['seller_city'] = filters[name].selectbox(label="City", options=seller_city_list, index = None)
             filters_sellers['seller_state'] = filters[name].selectbox(label="State", options=seller_state_list, index = None)
         elif name == 'customers' and status:
-            customer_id_list = connector.get_single_unique(name, "customer_id").astype(str).tolist()
+            customer_id_list = st.session_state.connector.get_single_unique(name, "customer_id").astype(str).tolist()
 
-            customer_unique_id_list = connector.get_single_unique(name, "customer_unique_id").astype(str).tolist()
+            customer_unique_id_list = st.session_state.connector.get_single_unique(name, "customer_unique_id").astype(str).tolist()
 
-            customer_zip_code_prefix_list = connector.get_single_unique(name, "customer_zip_code_prefix").astype(str).tolist()
+            customer_zip_code_prefix_list = st.session_state.connector.get_single_unique(name, "customer_zip_code_prefix").astype(str).tolist()
 
-            customer_city_list = connector.get_single_unique(name, "customer_city").astype(str).tolist()
+            customer_city_list = st.session_state.connector.get_single_unique(name, "customer_city").astype(str).tolist()
 
-            customer_state_list = connector.get_single_unique(name, "customer_state").astype(str).tolist()
+            customer_state_list = st.session_state.connector.get_single_unique(name, "customer_state").astype(str).tolist()
 
 
             filters[name] = filter_area.expander(label = name)
@@ -234,29 +237,29 @@ if has_selected_table:
             filters_customers["customer_city"] = filters[name].selectbox(label="City", options=customer_city_list, index = None)
             filters_customers["customer_state"] = filters[name].selectbox(label="State", options=customer_state_list, index = None)
         elif name == 'orders' and status:
-            order_id_list = connector.get_single_unique(name, "order_id").astype(str).tolist()
+            order_id_list = st.session_state.connector.get_single_unique(name, "order_id").astype(str).tolist()
 
-            customer_id_list = connector.get_single_unique(name, "customer_id").astype(str).tolist()
+            customer_id_list = st.session_state.connector.get_single_unique(name, "customer_id").astype(str).tolist()
 
-            order_status_list = connector.get_single_unique(name, 'order_status').astype(str).tolist()
+            order_status_list = st.session_state.connector.get_single_unique(name, 'order_status').astype(str).tolist()
 
-            order_purchase_timestamp_min, order_purchase_timestamp_max = connector.get_single_min_max(name, 'order_purchase_timestamp')
+            order_purchase_timestamp_min, order_purchase_timestamp_max = st.session_state.connector.get_single_min_max(name, 'order_purchase_timestamp')
             order_purchase_timestamp_min = pd.to_datetime(order_purchase_timestamp_min.loc[0]).to_pydatetime()
             order_purchase_timestamp_max= pd.to_datetime(order_purchase_timestamp_max.loc[0]).to_pydatetime()
 
-            order_approved_at_min, order_approved_at_max = connector.get_single_min_max(name, 'order_approved_at')
+            order_approved_at_min, order_approved_at_max = st.session_state.connector.get_single_min_max(name, 'order_approved_at')
             order_approved_at_min = pd.to_datetime(order_approved_at_min.loc[0]).to_pydatetime()
             order_approved_at_max = pd.to_datetime(order_approved_at_max.loc[0]).to_pydatetime()
 
-            order_delivered_carrier_date_min, order_delivered_carrier_date_max = connector.get_single_min_max(name, "order_delivered_carrier_date")
+            order_delivered_carrier_date_min, order_delivered_carrier_date_max = st.session_state.connector.get_single_min_max(name, "order_delivered_carrier_date")
             order_delivered_carrier_date_min = pd.to_datetime(order_delivered_carrier_date_min.loc[0]).to_pydatetime()
             order_delivered_carrier_date_max = pd.to_datetime(order_delivered_carrier_date_max.loc[0]).to_pydatetime()
 
-            order_delivered_customer_date_min, order_delivered_customer_date_max = connector.get_single_min_max(name, "order_delivered_customer_date")
+            order_delivered_customer_date_min, order_delivered_customer_date_max = st.session_state.connector.get_single_min_max(name, "order_delivered_customer_date")
             order_delivered_customer_date_min = pd.to_datetime(order_delivered_customer_date_min.loc[0]).to_pydatetime()
             order_delivered_customer_date_max = pd.to_datetime(order_delivered_customer_date_max.loc[0]).to_pydatetime()
 
-            order_estimated_delivery_date_min, order_estimated_delivery_date_max = connector.get_single_min_max(name, "order_estimated_delivery_date")
+            order_estimated_delivery_date_min, order_estimated_delivery_date_max = st.session_state.connector.get_single_min_max(name, "order_estimated_delivery_date")
             order_estimated_delivery_date_min = pd.to_datetime(order_estimated_delivery_date_min.loc[0]).to_pydatetime()
             order_estimated_delivery_date_max = pd.to_datetime(order_estimated_delivery_date_max.loc[0]).to_pydatetime()
 
@@ -280,15 +283,15 @@ if has_selected_table:
 
             filters_orders['order_estimated_delivery_date'] = filters[name].slider("Estimated Delivery Date", min_value=order_estimated_delivery_date_min, max_value=order_estimated_delivery_date_max, value=(order_estimated_delivery_date_min, order_estimated_delivery_date_max), step=config.time['step']['day'], format=config.time['format']['short'])
         elif name == 'order_payments' and status:
-            order_id_list = connector.get_single_unique(name, 'order_id').astype(str).tolist()
+            order_id_list = st.session_state.connector.get_single_unique(name, 'order_id').astype(str).tolist()
 
-            payment_sequential_list = connector.get_single_unique(name, 'payment_sequential').astype(str).tolist()
+            payment_sequential_list = st.session_state.connector.get_single_unique(name, 'payment_sequential').astype(str).tolist()
 
-            payment_type_list = connector.get_single_unique(name, 'payment_type').astype(str).tolist()
+            payment_type_list = st.session_state.connector.get_single_unique(name, 'payment_type').astype(str).tolist()
 
-            payment_installments_list = connector.get_single_unique(name, 'payment_installments').astype(str).tolist()
+            payment_installments_list = st.session_state.connector.get_single_unique(name, 'payment_installments').astype(str).tolist()
 
-            payment_value_min, payment_value_max = connector.get_single_min_max(name, 'payment_value')
+            payment_value_min, payment_value_max = st.session_state.connector.get_single_min_max(name, 'payment_value')
             payment_value_min = float(payment_value_min.iloc[0])
             payment_value_max = float(payment_value_max.iloc[0])
 
@@ -306,35 +309,35 @@ if has_selected_table:
 
             filters_order_payments['payment_value'] = filters[name].slider("Payment Value", min_value=payment_value_min, max_value=payment_value_max, value=(payment_value_min, payment_value_max), step=config.concurrency)
         elif name == 'products' and status:
-            product_id_list = connector.get_single_unique(name, "product_id").astype(str).tolist()
+            product_id_list = st.session_state.connector.get_single_unique(name, "product_id").astype(str).tolist()
 
-            product_category_name_list = connector.get_single_unique(name, "product_category_name").astype(str).tolist()
+            product_category_name_list = st.session_state.connector.get_single_unique(name, "product_category_name").astype(str).tolist()
 
-            product_name_length_min, product_name_length_max = connector.get_single_min_max(name, "product_name_length")
+            product_name_length_min, product_name_length_max = st.session_state.connector.get_single_min_max(name, "product_name_length")
             product_name_length_min = int(product_name_length_min.loc[0])
             product_name_length_max= int(product_name_length_max.loc[0])
 
-            product_description_length_min, product_description_length_max = connector.get_single_min_max(name, "product_description_length")
+            product_description_length_min, product_description_length_max = st.session_state.connector.get_single_min_max(name, "product_description_length")
             product_description_length_min = int(product_description_length_min.loc[0])
             product_description_length_max = int(product_description_length_max.loc[0])
 
-            product_photos_qty_min, product_photos_qty_max = connector.get_single_min_max(name,"product_photos_qty")
+            product_photos_qty_min, product_photos_qty_max = st.session_state.connector.get_single_min_max(name,"product_photos_qty")
             product_photos_qty_min = int(product_photos_qty_min.loc[0])
             product_photos_qty_max = int(product_photos_qty_max.loc[0])
 
-            product_weight_g_min, product_weight_g_max = connector.get_single_min_max(name,"product_weight_g")
+            product_weight_g_min, product_weight_g_max = st.session_state.connector.get_single_min_max(name,"product_weight_g")
             product_weight_g_min = int(product_weight_g_min.loc[0])
             product_weight_g_max = int(product_weight_g_max.loc[0])
 
-            product_length_cm_min, product_length_cm_max = connector.get_single_min_max(name, "product_length_cm")
+            product_length_cm_min, product_length_cm_max = st.session_state.connector.get_single_min_max(name, "product_length_cm")
             product_length_cm_min = int(product_length_cm_min.loc[0])
             product_length_cm_max = int(product_length_cm_max.loc[0])
 
-            product_height_cm_min, product_height_cm_max = connector.get_single_min_max(name, "product_height_cm")
+            product_height_cm_min, product_height_cm_max = st.session_state.connector.get_single_min_max(name, "product_height_cm")
             product_height_cm_min = int(product_height_cm_min.loc[0])
             product_height_cm_max = int(product_height_cm_max .loc[0])
 
-            product_width_cm_min, product_width_cm_max = connector.get_single_min_max(name, "product_width_cm")
+            product_width_cm_min, product_width_cm_max = st.session_state.connector.get_single_min_max(name, "product_width_cm")
             product_width_cm_min = int(product_width_cm_min.loc[0])
             product_width_cm_max = int(product_width_cm_max.loc[0])
 
@@ -359,23 +362,23 @@ if has_selected_table:
 
             filters_products['product_width_cm'] = filters[name].slider(label="Width in cm", min_value=product_width_cm_min, max_value=product_width_cm_max, value=(product_width_cm_min,product_width_cm_max), step=config.integer)
         elif name == 'order_items' and status:
-            order_id_list = connector.get_single_unique(name, "order_id").astype(str).tolist()
+            order_id_list = st.session_state.connector.get_single_unique(name, "order_id").astype(str).tolist()
 
-            order_item_id_list = connector.get_single_unique(name, "order_item_id").astype(str).tolist()
+            order_item_id_list = st.session_state.connector.get_single_unique(name, "order_item_id").astype(str).tolist()
 
-            product_id_list = connector.get_single_unique(name, "product_id").astype(str).tolist()
+            product_id_list = st.session_state.connector.get_single_unique(name, "product_id").astype(str).tolist()
 
-            seller_id_list = connector.get_single_unique(name, "seller_id").astype(str).tolist()
+            seller_id_list = st.session_state.connector.get_single_unique(name, "seller_id").astype(str).tolist()
 
-            shipping_limit_date_min, shipping_limit_date_max = connector.get_single_min_max(name, "shipping_limit_date")
+            shipping_limit_date_min, shipping_limit_date_max = st.session_state.connector.get_single_min_max(name, "shipping_limit_date")
             shipping_limit_date_min = pd.to_datetime(shipping_limit_date_min.loc[0]).to_pydatetime()
             shipping_limit_date_max = pd.to_datetime(shipping_limit_date_max.loc[0]).to_pydatetime()
 
-            price_min, price_max = connector.get_single_min_max(name, "price")
+            price_min, price_max = st.session_state.connector.get_single_min_max(name, "price")
             price_min = float(price_min.loc[0])
             price_max = float(price_max.loc[0])
 
-            freight_value_min, freight_value_max = connector.get_single_min_max(name, "freight_value")
+            freight_value_min, freight_value_max = st.session_state.connector.get_single_min_max(name, "freight_value")
             freight_value_min = float(freight_value_min.loc[0])
             freight_value_max = float(freight_value_max.loc[0])
 
@@ -397,15 +400,15 @@ if has_selected_table:
 
             filters_order_items['freight_value'] = filters[name].slider("Freight Value", min_value=freight_value_min, max_value=freight_value_max, value=(freight_value_min, freight_value_max), step=config.concurrency)
         elif name == 'order_reviews' and status:
-            review_id_list = connector.get_single_unique(name, "review_id").astype(str).tolist()
+            review_id_list = st.session_state.connector.get_single_unique(name, "review_id").astype(str).tolist()
 
-            order_id_list = connector.get_single_unique(name, "order_id").astype(str).tolist()
+            order_id_list = st.session_state.connector.get_single_unique(name, "order_id").astype(str).tolist()
 
-            review_score_min, review_score_max = connector.get_single_min_max(name, "review_score")
+            review_score_min, review_score_max = st.session_state.connector.get_single_min_max(name, "review_score")
             review_score_min = int(review_score_min.loc[0])
             review_score_max = int(review_score_max.loc[0])
 
-            review_creation_date_min, review_creation_date_max = connector.get_single_min_max(name, "review_creation_date")
+            review_creation_date_min, review_creation_date_max = st.session_state.connector.get_single_min_max(name, "review_creation_date")
             review_creation_date_min = pd.to_datetime(review_creation_date_min.loc[0]).to_pydatetime()
             review_creation_date_max = pd.to_datetime(review_creation_date_max.loc[0]).to_pydatetime()
 
@@ -902,26 +905,42 @@ else:
     query += ";"
 
 
+    right_column.write(filter_area_buttom)
     if filter_area_buttom:
-        result = connector.query(query)
+        result = st.session_state.connector.query(query)
         st.session_state.result = result
         st.session_state.query = query
 
-    if st.session_state.data_changed == True:
-        st.session_state.data_changed = False
+    right_column.write(st.session_state.data_changed)
+    # if st.session_state.data_changed:
 
+    #     if st.session_state.query == "":
+    #         right_column.write("Please click submit for search data.")
+    #     else:
+    #         st.session_state.result = st.session_state.connector.query(st.session_state.query)
+    #         right_column.write(f"Checkpoint 1 triggered. {st.session_state.counter}")
+    #         right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width = True)
+    #         st.session_state.counter[0] += 1
+
+    #         st.session_state.data_changed = False
+    # elif update_change:
+    if update_change:
         if st.session_state.query == "":
             right_column.write("Please click submit for search data.")
         else:
-            # st.session_state.result = connector.query(st.session_state.query)
-            right_column.dataframe(connector.query(st.session_state.query), height = config.table_height, use_container_width = True)
+            st.session_state.result = st.session_state.connector.query(st.session_state.query)
+            right_column.write(f"Checkpoint 0 triggered. {st.session_state.counter}")
+            right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width = True)
+
     else:
         if st.session_state.query == "":
             right_column.write("Please click submit for search data.")
         else:
-            # st.session_state.result = connector.query(st.session_state.query)
-            # right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width  = True)
-            right_column.dataframe(connector.query(st.session_state.query), height = config.table_height, use_container_width  = True)
+            st.session_state.counter[1] += 1
+            right_column.write(f"Checkpoint 2 triggered. {st.session_state.counter}")
+            # st.session_state.result = st.session_state.connector.query(st.session_state.query)
+            right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width  = True)
+            # right_column.dataframe(connector.query(st.session_state.query), height = config.table_height, use_container_width  = True)
 
 # Solving behavior: Add 
 
@@ -932,7 +951,6 @@ else:
 @st.dialog("Add", width="large")
 def add_data():
     # Preparation
-    connector = st.session_state.connector
     prepared_name = utils.generate_random_string()
     disable_button = False # If data illegal, disable_button = True
     while prepared_name in st.session_state.stack:
@@ -972,17 +990,17 @@ def add_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lat')
+        data['geolocation_zip_code_prefix']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'geolocation_lat')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['geolocation_lat']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lng')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'geolocation_lng')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['geolocation_lng']['limit'] = (tmp_min, tmp_max)
-        data['geolocation_city']['limit'] = connector.get_single_unique(data['name'], 'geolocation_city').astype(str).tolist()
-        data['geolocation_state']['limit'] = connector.get_single_unique(data['name'], 'geolocation_state').astype(str).tolist()
+        data['geolocation_city']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'geolocation_city').astype(str).tolist()
+        data['geolocation_state']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'geolocation_state').astype(str).tolist()
 
         # Input widgets # no wrong input type handling
         data['geolocation_zip_code_prefix']['input'] = st.text_input(label="zip_code_prefix", max_chars=5, value=None)
@@ -1004,10 +1022,10 @@ def add_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['seller_id']['limit'] = connector.get_single_unique(data['name'], "seller_id").astype(str).tolist()
-        data['seller_zip_code_prefix']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['seller_city']['limit'] = connector.get_single_unique(data['name'], 'seller_city').astype(str).tolist()
-        data['seller_state']['limit'] = connector.get_single_unique(data['name'], 'seller_state').astype(str).tolist()
+        data['seller_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "seller_id").astype(str).tolist()
+        data['seller_zip_code_prefix']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['seller_city']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'seller_city').astype(str).tolist()
+        data['seller_state']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'seller_state').astype(str).tolist()
 
         # Input widgets # no wrong input type handling
         data['seller_id']['input'] = st.text_input(label="ID", max_chars=32, value=None)
@@ -1029,11 +1047,11 @@ def add_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['customer_id']['limit'] = connector.get_single_unique(data['name'], "customer_id").astype(str).tolist()
-        data['customer_unique_id']['limit'] = connector.get_single_unique(data['name'], "customer_unique_id").astype(str).tolist()
-        data['customer_zip_code_prefix']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['customer_city']['limit'] = connector.get_single_unique(data['name'], 'customer_city').astype(str).tolist()
-        data['customer_state']['limit'] = connector.get_single_unique(data['name'], 'customer_state').astype(str).tolist()
+        data['customer_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "customer_id").astype(str).tolist()
+        data['customer_unique_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "customer_unique_id").astype(str).tolist()
+        data['customer_zip_code_prefix']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['customer_city']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'customer_city').astype(str).tolist()
+        data['customer_state']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'customer_state').astype(str).tolist()
 
         # Input widgets # no wrong input type handling
         data['customer_id']['input'] = st.text_input(label="Account ID", max_chars=32, value=None)
@@ -1059,26 +1077,26 @@ def add_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['order_id']['limit'] = connector.get_single_unique(data['name'], "order_id").astype(str).tolist()
-        data['customer_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['order_status']['limit'] = connector.get_single_unique(data['name'], "order_status").astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_purchase_timestamp')
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "order_id").astype(str).tolist()
+        data['customer_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['order_status']['limit'] = st.session_state.connector.get_single_unique(data['name'], "order_status").astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_purchase_timestamp')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_purchase_timestamp']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_approved_at')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_approved_at')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_approved_at']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_delivered_carrier_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_delivered_carrier_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_delivered_carrier_date']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_delivered_customer_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_delivered_customer_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_delivered_customer_date']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_estimated_delivery_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_estimated_delivery_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_estimated_delivery_date']['limit'] = (tmp_min, tmp_max)
@@ -1123,14 +1141,14 @@ def add_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['payment_sequential']['limit'] = connector.get_single_unique(data['name'], 'payment_sequential').astype(str).tolist()
-        data['payment_type']['limit'] = connector.get_single_unique(data['name'], 'payment_type').astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'payment_installments')
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['payment_sequential']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'payment_sequential').astype(str).tolist()
+        data['payment_type']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'payment_type').astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'payment_installments')
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data['payment_installments']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'payment_value')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'payment_value')
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data['payment_value']['limit'] = (tmp_min, tmp_max)
@@ -1160,40 +1178,40 @@ def add_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['product_id']['limit'] = connector.get_single_unique(data['name'], 'product_id').astype(str).tolist()
-        data['product_category_name']['limit'] = connector.get_single_unique(data['name'], 'product_category_name').astype(str).tolist()
+        data['product_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'product_id').astype(str).tolist()
+        data['product_category_name']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'product_category_name').astype(str).tolist()
         key = 'product_name_length'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_description_length'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_photos_qty'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_weight_g'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_length_cm'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_height_cm'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_width_cm'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
@@ -1225,19 +1243,19 @@ def add_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['order_item_id']['limit'] = connector.get_single_unique(data['name'], 'order_item_id').astype(str).tolist()
-        data['product_id']['limit'] = connector.get_single_unique(referencing_information['table'][1], referencing_information['key'][1]).astype(str).tolist()
-        data['seller_id']['limit'] = connector.get_single_unique(referencing_information['table'][2], referencing_information['key'][2]).astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'shipping_limit_date')
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['order_item_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'order_item_id').astype(str).tolist()
+        data['product_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][1], referencing_information['key'][1]).astype(str).tolist()
+        data['seller_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][2], referencing_information['key'][2]).astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'shipping_limit_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['shipping_limit_date']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'price')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'price')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['price']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'freight_value')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'freight_value')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['freight_value']['limit'] = (tmp_min, tmp_max)
@@ -1268,13 +1286,13 @@ def add_data():
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
 
-        data['review_id']['limit'] = connector.get_single_unique(data['name'], 'review_id').astype(str).tolist()
-        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'review_score')
+        data['review_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'review_id').astype(str).tolist()
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'review_score')
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data['review_score']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'review_creation_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'review_creation_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['review_creation_date']['limit'] = (tmp_min, tmp_max)
@@ -1305,7 +1323,7 @@ def add_data():
                 if data[key]['input'] is not None:
                     foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['input']}';" # foreign keys are zip_code or xx_id
 
-                    foreign_result = connector.query(foreign_query)
+                    foreign_result = st.session_state.connector.query(foreign_query)
                     if len(foreign_result) == 0:
                         exist_foreign_key = False;
                         st.error(f"You didn't input an existed value about {foreign_keys['local'][idx]}")
@@ -1325,7 +1343,7 @@ def add_data():
                 primary_query += f"{key} = '{data[key]['input']}' AND "
             primary_query = primary_query[:-4]
             primary_query += ";"
-            primary_result = connector.query(primary_query)
+            primary_result = st.session_state.connector.query(primary_query)
             if len(primary_result) != 0:
                 exist_primary_key = True
                 st.error(f"You input some value or value pair that exists in table {data['name']} over primary key ({', '.join(primary_keys)}). ")
@@ -1426,14 +1444,13 @@ def add_data():
         final_query = f"INSERT INTO {data['name']} ({key_side}) VALUES ({value_side});"
         st.session_state.stack.append(connector.checkpoint_add(prepared_name))
 
-        connector.execute(final_query)
+        st.session_state.connector.execute(final_query)
         st.session_state.data_changed = True
-        st.rerun()
+        # st.rerun(scope="fragment")
 
 @st.dialog("Delete", width="large")
 def delete_data():
     # Preparation
-    connector = st.session_state.connector
     prepared_name = utils.generate_random_string()
     disable_button = False # If data illegal, disable_button = True
     while prepared_name in st.session_state.stack:
@@ -1471,17 +1488,17 @@ def delete_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lat')
+        data['geolocation_zip_code_prefix']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'geolocation_lat')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['geolocation_lat']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lng')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'geolocation_lng')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['geolocation_lng']['limit'] = (tmp_min, tmp_max)
-        data['geolocation_city']['limit'] = connector.get_single_unique(data['name'], 'geolocation_city').astype(str).tolist()
-        data['geolocation_state']['limit'] = connector.get_single_unique(data['name'], 'geolocation_state').astype(str).tolist()
+        data['geolocation_city']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'geolocation_city').astype(str).tolist()
+        data['geolocation_state']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'geolocation_state').astype(str).tolist()
 
         # Input widgets # no wrong input type handling
         data['geolocation_zip_code_prefix']['input'] = st.selectbox(label="Zip Code", options=data['geolocation_zip_code_prefix']['limit'], index=None)
@@ -1502,10 +1519,10 @@ def delete_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['seller_id']['limit'] = connector.get_single_unique(data['name'], "seller_id").astype(str).tolist()
-        data['seller_zip_code_prefix']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['seller_city']['limit'] = connector.get_single_unique(data['name'], 'seller_city').astype(str).tolist()
-        data['seller_state']['limit'] = connector.get_single_unique(data['name'], 'seller_state').astype(str).tolist()
+        data['seller_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "seller_id").astype(str).tolist()
+        data['seller_zip_code_prefix']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['seller_city']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'seller_city').astype(str).tolist()
+        data['seller_state']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'seller_state').astype(str).tolist()
 
         # Input widgets # no wrong input type handling
         data['seller_id']['input'] = st.selectbox(label="ID", options=data['seller_id']['limit'], index = None)
@@ -1526,11 +1543,11 @@ def delete_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['customer_id']['limit'] = connector.get_single_unique(data['name'], "customer_id").astype(str).tolist()
-        data['customer_unique_id']['limit'] = connector.get_single_unique(data['name'], "customer_unique_id").astype(str).tolist()
-        data['customer_zip_code_prefix']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['customer_city']['limit'] = connector.get_single_unique(data['name'], 'customer_city').astype(str).tolist()
-        data['customer_state']['limit'] = connector.get_single_unique(data['name'], 'customer_state').astype(str).tolist()
+        data['customer_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "customer_id").astype(str).tolist()
+        data['customer_unique_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "customer_unique_id").astype(str).tolist()
+        data['customer_zip_code_prefix']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['customer_city']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'customer_city').astype(str).tolist()
+        data['customer_state']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'customer_state').astype(str).tolist()
 
         # Input widgets # no wrong input type handling
         data['customer_id']['input'] = st.selectbox(label="ID", options=data['customer_id']['limit'], index = None)
@@ -1555,26 +1572,26 @@ def delete_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['order_id']['limit'] = connector.get_single_unique(data['name'], "order_id").astype(str).tolist()
-        data['customer_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['order_status']['limit'] = connector.get_single_unique(data['name'], "order_status").astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_purchase_timestamp')
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "order_id").astype(str).tolist()
+        data['customer_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['order_status']['limit'] = st.session_state.connector.get_single_unique(data['name'], "order_status").astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_purchase_timestamp')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_purchase_timestamp']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_approved_at')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_approved_at')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_approved_at']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_delivered_carrier_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_delivered_carrier_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_delivered_carrier_date']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_delivered_customer_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_delivered_customer_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_delivered_customer_date']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_estimated_delivery_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_estimated_delivery_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_estimated_delivery_date']['limit'] = (tmp_min, tmp_max)
@@ -1603,14 +1620,14 @@ def delete_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['payment_sequential']['limit'] = connector.get_single_unique(data['name'], 'payment_sequential').astype(str).tolist()
-        data['payment_type']['limit'] = connector.get_single_unique(data['name'], 'payment_type').astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'payment_installments')
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['payment_sequential']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'payment_sequential').astype(str).tolist()
+        data['payment_type']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'payment_type').astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'payment_installments')
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data['payment_installments']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'payment_value')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'payment_value')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['payment_value']['limit'] = (tmp_min, tmp_max)
@@ -1639,40 +1656,40 @@ def delete_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['product_id']['limit'] = connector.get_single_unique(data['name'], 'product_id').astype(str).tolist()
-        data['product_category_name']['limit'] = connector.get_single_unique(data['name'], 'product_category_name').astype(str).tolist()
+        data['product_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'product_id').astype(str).tolist()
+        data['product_category_name']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'product_category_name').astype(str).tolist()
         key = 'product_name_length'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_description_length'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_photos_qty'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_weight_g'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_length_cm'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_height_cm'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_width_cm'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
@@ -1703,19 +1720,19 @@ def delete_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['order_item_id']['limit'] = connector.get_single_unique(data['name'], 'order_item_id').astype(str).tolist()
-        data['product_id']['limit'] = connector.get_single_unique(referencing_information['table'][1], referencing_information['key'][1]).astype(str).tolist()
-        data['seller_id']['limit'] = connector.get_single_unique(referencing_information['table'][2], referencing_information['key'][2]).astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'shipping_limit_date')
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['order_item_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'order_item_id').astype(str).tolist()
+        data['product_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][1], referencing_information['key'][1]).astype(str).tolist()
+        data['seller_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][2], referencing_information['key'][2]).astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'shipping_limit_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['shipping_limit_date']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'price')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'price')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['price']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'freight_value')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'freight_value')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['freight_value']['limit'] = (tmp_min, tmp_max)
@@ -1742,13 +1759,13 @@ def delete_data():
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
 
-        data['review_id']['limit'] = connector.get_single_unique(data['name'], 'review_id').astype(str).tolist()
-        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'review_score')
+        data['review_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'review_id').astype(str).tolist()
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'review_score')
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data['review_score']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'review_creation_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'review_creation_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['review_creation_date']['limit'] = (tmp_min, tmp_max)
@@ -1790,7 +1807,7 @@ def delete_data():
             record_query = record_query[:-4]
             record_query += ";"
 
-            record_result = connector.query(record_query)
+            record_result = st.session_state.connector.query(record_query)
             # if len(record_result) == 0:
             #     disable_button = True
             #     st.error("Searched record doesn't exists with filters")
@@ -1815,15 +1832,14 @@ def delete_data():
     dialog_submit = st.button("Submit", disabled=disable_button)
     if dialog_submit:
         st.session_state.stack.append(connector.checkpoint_add(prepared_name))
-        connector.execute(delete_query)
+        st.session_state.connector.execute(delete_query)
         st.session_state.data_changed = True
-        st.rerun()
+        # st.rerun(scope="fragment")
 
 @st.dialog("Update", width="large")
 def update_data():
 
     # Preparation
-    connector = st.session_state.connector
     prepared_name = utils.generate_random_string()
     disable_button = False # If data illegal, disable_button = True
     while prepared_name in st.session_state.stack:
@@ -1866,17 +1882,17 @@ def update_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['geolocation_zip_code_prefix']['limit'] = connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lat')
+        data['geolocation_zip_code_prefix']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'geolocation_zip_code_prefix').astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'geolocation_lat')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['geolocation_lat']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'geolocation_lng')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'geolocation_lng')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['geolocation_lng']['limit'] = (tmp_min, tmp_max)
-        data['geolocation_city']['limit'] = connector.get_single_unique(data['name'], 'geolocation_city').astype(str).tolist()
-        data['geolocation_state']['limit'] = connector.get_single_unique(data['name'], 'geolocation_state').astype(str).tolist()
+        data['geolocation_city']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'geolocation_city').astype(str).tolist()
+        data['geolocation_state']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'geolocation_state').astype(str).tolist()
 
         # Original data
         data['geolocation_zip_code_prefix']['input'] = left_column.selectbox(label="Zip Code", options=data['geolocation_zip_code_prefix']['limit'], index=None)
@@ -1908,10 +1924,10 @@ def update_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['seller_id']['limit'] = connector.get_single_unique(data['name'], "seller_id").astype(str).tolist()
-        data['seller_zip_code_prefix']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['seller_city']['limit'] = connector.get_single_unique(data['name'], 'seller_city').astype(str).tolist()
-        data['seller_state']['limit'] = connector.get_single_unique(data['name'], 'seller_state').astype(str).tolist()
+        data['seller_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "seller_id").astype(str).tolist()
+        data['seller_zip_code_prefix']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['seller_city']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'seller_city').astype(str).tolist()
+        data['seller_state']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'seller_state').astype(str).tolist()
 
         # Original data
         data['seller_id']['input'] = left_column.selectbox(label="ID", options=data['seller_id']['limit'], index = None)
@@ -1943,11 +1959,11 @@ def update_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['customer_id']['limit'] = connector.get_single_unique(data['name'], "customer_id").astype(str).tolist()
-        data['customer_unique_id']['limit'] = connector.get_single_unique(data['name'], "customer_unique_id").astype(str).tolist()
-        data['customer_zip_code_prefix']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['customer_city']['limit'] = connector.get_single_unique(data['name'], 'customer_city').astype(str).tolist()
-        data['customer_state']['limit'] = connector.get_single_unique(data['name'], 'customer_state').astype(str).tolist()
+        data['customer_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "customer_id").astype(str).tolist()
+        data['customer_unique_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "customer_unique_id").astype(str).tolist()
+        data['customer_zip_code_prefix']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['customer_city']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'customer_city').astype(str).tolist()
+        data['customer_state']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'customer_state').astype(str).tolist()
 
         # Original data
         data['customer_id']['input'] = left_column.selectbox(label="ID", options=data['customer_id']['limit'], index = None)
@@ -1983,26 +1999,26 @@ def update_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['order_id']['limit'] = connector.get_single_unique(data['name'], "order_id").astype(str).tolist()
-        data['customer_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['order_status']['limit'] = connector.get_single_unique(data['name'], "order_status").astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_purchase_timestamp')
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], "order_id").astype(str).tolist()
+        data['customer_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['order_status']['limit'] = st.session_state.connector.get_single_unique(data['name'], "order_status").astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_purchase_timestamp')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_purchase_timestamp']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_approved_at')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_approved_at')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_approved_at']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_delivered_carrier_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_delivered_carrier_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_delivered_carrier_date']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_delivered_customer_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_delivered_customer_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_delivered_customer_date']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'order_estimated_delivery_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'order_estimated_delivery_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['order_estimated_delivery_date']['limit'] = (tmp_min, tmp_max)
@@ -2060,14 +2076,14 @@ def update_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['payment_sequential']['limit'] = connector.get_single_unique(data['name'], 'payment_sequential').astype(str).tolist()
-        data['payment_type']['limit'] = connector.get_single_unique(data['name'], 'payment_type').astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'payment_installments')
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['payment_sequential']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'payment_sequential').astype(str).tolist()
+        data['payment_type']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'payment_type').astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'payment_installments')
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data['payment_installments']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'payment_value')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'payment_value')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['payment_value']['limit'] = (tmp_min, tmp_max)
@@ -2107,40 +2123,40 @@ def update_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['product_id']['limit'] = connector.get_single_unique(data['name'], 'product_id').astype(str).tolist()
-        data['product_category_name']['limit'] = connector.get_single_unique(data['name'], 'product_category_name').astype(str).tolist()
+        data['product_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'product_id').astype(str).tolist()
+        data['product_category_name']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'product_category_name').astype(str).tolist()
         key = 'product_name_length'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_description_length'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_photos_qty'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_weight_g'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_length_cm'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_height_cm'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
         key = 'product_width_cm'
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], key)
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], key)
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data[key]['limit'] = (tmp_min, tmp_max)
@@ -2186,19 +2202,19 @@ def update_data():
         referencing_information = st.session_state.map['referencing_keys'][data['name']]
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
-        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        data['order_item_id']['limit'] = connector.get_single_unique(data['name'], 'order_item_id').astype(str).tolist()
-        data['product_id']['limit'] = connector.get_single_unique(referencing_information['table'][1], referencing_information['key'][1]).astype(str).tolist()
-        data['seller_id']['limit'] = connector.get_single_unique(referencing_information['table'][2], referencing_information['key'][2]).astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'shipping_limit_date')
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        data['order_item_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'order_item_id').astype(str).tolist()
+        data['product_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][1], referencing_information['key'][1]).astype(str).tolist()
+        data['seller_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][2], referencing_information['key'][2]).astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'shipping_limit_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['shipping_limit_date']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'price')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'price')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['price']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'freight_value')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'freight_value')
         tmp_min = float(tmp_min.iloc[0])
         tmp_max = float(tmp_max.iloc[0])
         data['freight_value']['limit'] = (tmp_min, tmp_max)
@@ -2241,13 +2257,13 @@ def update_data():
         referencing_information_length = len(referencing_information) if referencing_information is not None else 0
 
 
-        data['review_id']['limit'] = connector.get_single_unique(data['name'], 'review_id').astype(str).tolist()
-        data['order_id']['limit'] = connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'review_score')
+        data['review_id']['limit'] = st.session_state.connector.get_single_unique(data['name'], 'review_id').astype(str).tolist()
+        data['order_id']['limit'] = st.session_state.connector.get_single_unique(referencing_information['table'][0], referencing_information['key'][0]).astype(str).tolist()
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'review_score')
         tmp_min = int(tmp_min.iloc[0])
         tmp_max = int(tmp_max.iloc[0])
         data['review_score']['limit'] = (tmp_min, tmp_max)
-        tmp_min, tmp_max = connector.get_single_min_max(data['name'], 'review_creation_date')
+        tmp_min, tmp_max = st.session_state.connector.get_single_min_max(data['name'], 'review_creation_date')
         tmp_min = pd.to_datetime(tmp_min.loc[0]).to_pydatetime()
         tmp_max = pd.to_datetime(tmp_max.loc[0]).to_pydatetime()
         data['review_creation_date']['limit'] = (tmp_min, tmp_max)
@@ -2300,7 +2316,7 @@ def update_data():
             record_query = record_query[:-4]
             record_query += ";"
 
-            record_result = connector.query(record_query)
+            record_result = st.session_state.connector.query(record_query)
             # if len(record_result) == 0:
             #     disable_button = True
             #     left_column.error("Searched record doesn't exists with filters")
@@ -2310,11 +2326,11 @@ def update_data():
         exist_foreign_key = True
         if foreign_keys is not None:
             for idx in range(len(foreign_keys['local'])):
-                key = foreign_keys['key'][idx]
+                key = foreign_keys['local'][idx]
                 if data[key]['input'] is not None:
                     foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['changed']}';" # foreign keys are zip_code or xx_id
 
-                    foreign_result = connector.query(foreign_query)
+                    foreign_result = st.session_state.connector.query(foreign_query)
                     if len(foreign_result) == 0:
                         exist_foreign_key = False;
                         right_column.error(f"You didn't input an existed value about {foreign_keys['local'][idx]}")
@@ -2334,7 +2350,7 @@ def update_data():
                 primary_query += f"{key} = '{data[key]['changed']}' AND "
             primary_query = primary_query[:-4]
             primary_query += ";"
-            primary_result = connector.query(primary_query)
+            primary_result = st.session_state.connector.query(primary_query)
             if len(primary_result) != 0:
                 exist_primary_key = True
                 right_column.error(f"You input some value or value pair that exists in table {data['name']} over primary key ({', '.join(primary_keys)}). ")
@@ -2443,9 +2459,9 @@ def update_data():
 
         final_query = f"UPDATE {data['name']} SET {changed_side} WHERE {original_side};"
         st.session_state.stack.append(connector.checkpoint_add(prepared_name))
-        connector.execute(final_query)
+        st.session_state.connector.execute(final_query)
         st.session_state.data_changed = True
-        st.rerun()
+        # st.rerun(scope="fragment")
 
 if buttom_table_add:
     add_data()
