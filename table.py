@@ -72,7 +72,6 @@ buttom_table_add = area_add.button(label="Add", use_container_width=True)
 buttom_table_delete = area_delete.button(label="Delete", use_container_width=True)
 buttom_table_update = area_update.button(label="Update", use_container_width=True)
 
-update_change = table_and_change.button(label="Flush", use_container_width=True)
 
 table_list = table_and_change.container(border=True)
 table_list_checkbox=[]
@@ -912,25 +911,17 @@ else:
         st.session_state.query = query
 
     right_column.write(st.session_state.data_changed)
-    # if st.session_state.data_changed:
+    if st.session_state.data_changed:
 
-    #     if st.session_state.query == "":
-    #         right_column.write("Please click submit for search data.")
-    #     else:
-    #         st.session_state.result = st.session_state.connector.query(st.session_state.query)
-    #         right_column.write(f"Checkpoint 1 triggered. {st.session_state.counter}")
-    #         right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width = True)
-    #         st.session_state.counter[0] += 1
-
-    #         st.session_state.data_changed = False
-    # elif update_change:
-    if update_change:
         if st.session_state.query == "":
             right_column.write("Please click submit for search data.")
         else:
             st.session_state.result = st.session_state.connector.query(st.session_state.query)
-            right_column.write(f"Checkpoint 0 triggered. {st.session_state.counter}")
+            right_column.write(f"Checkpoint 1 triggered. {st.session_state.counter}")
             right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width = True)
+            st.session_state.counter[0] += 1
+
+            st.session_state.data_changed = False
 
     else:
         if st.session_state.query == "":
@@ -1446,7 +1437,7 @@ def add_data():
 
         st.session_state.connector.execute(final_query)
         st.session_state.data_changed = True
-        # st.rerun(scope="fragment")
+        st.rerun()
 
 @st.dialog("Delete", width="large")
 def delete_data():
@@ -1834,7 +1825,7 @@ def delete_data():
         st.session_state.stack.append(connector.checkpoint_add(prepared_name))
         st.session_state.connector.execute(delete_query)
         st.session_state.data_changed = True
-        # st.rerun(scope="fragment")
+        st.rerun(scope="fragment")
 
 @st.dialog("Update", width="large")
 def update_data():
@@ -2461,7 +2452,7 @@ def update_data():
         st.session_state.stack.append(connector.checkpoint_add(prepared_name))
         st.session_state.connector.execute(final_query)
         st.session_state.data_changed = True
-        # st.rerun(scope="fragment")
+        st.rerun(scope="fragment")
 
 if buttom_table_add:
     add_data()

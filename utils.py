@@ -124,7 +124,6 @@ class NewConnector:
         self.database = database
         self.connection = None
         self.cursor = None
-        self.transaction = None
         self.connect()
         with open('config.yaml', 'r') as file:
             self.database_config = yaml.safe_load(file)
@@ -160,7 +159,7 @@ class NewConnector:
             print(f"Error connecting to MariaDB: {e}")
             raise
 
-    def get_single_min(self, table_name, key_name, filters=None):
+    def get_single_min(self, table_name, key_name):
         query = f"""
         SELECT MIN({key_name}) AS min_amount
         FROM {table_name};
@@ -169,7 +168,7 @@ class NewConnector:
         result = self.cursor.fetchone()
         return pd.Series([result[0]])
 
-    def get_single_max(self, table_name, key_name, filters=None):
+    def get_single_max(self, table_name, key_name):
         query = f"""
         SELECT MAX({key_name}) AS max_amount
         FROM {table_name};
@@ -178,7 +177,7 @@ class NewConnector:
         result = self.cursor.fetchone()
         return pd.Series([result[0]])
 
-    def get_single_min_max(self, table_name, key_name, filters=None):
+    def get_single_min_max(self, table_name, key_name):
         query = f"""
         SELECT MIN({key_name}) AS min_amount,
                MAX({key_name}) AS max_amount
@@ -188,7 +187,7 @@ class NewConnector:
         result = self.cursor.fetchone()
         return pd.Series([result[0]]), pd.Series([result[1]])
 
-    def get_single_unique(self, table_name, key_name, filters=None):
+    def get_single_unique(self, table_name, key_name):
         query = f"""
         SELECT DISTINCT {key_name} AS unique_key
         FROM {table_name};
@@ -197,14 +196,14 @@ class NewConnector:
         result = self.cursor.fetchall()
         return pd.Series([row[0] for row in result])
 
-    def get_tables(self):
-        return self.table_names
+    # def get_tables(self):
+        # return self.table_names
 
-    def get_keys(self, table_name):
-        return self.table_keys.get(table_name, None)
+    # def get_keys(self, table_name):
+        # return self.table_keys.get(table_name, None)
 
-    def query(self, sql_query):
-        self.cursor.execute(sql_query)
+    def query(self, sql_query, value):
+        self.cursor.execute(sql_query, value)
         result = self.cursor.fetchall()
         columns = [desc[0] for desc in self.cursor.description]
         df = pd.DataFrame(result, columns=columns)
@@ -212,22 +211,16 @@ class NewConnector:
         print(df)
         return df
 
-    def execute(self, sql_query):
-        try:
-            self.cursor.execute(sql_query)
-            self.connection.commit()
-        except mariadb.Error as e:
-            print(f"Error executing query: {e}")
-            self.connection.rollback()
-            raise
+    def execute(self, sql_query, value):
+        self.cursor.execute(sql_query, value)
 
     def start_transaction(self):
-        self.transaction = self.connection.cursor()
-        self.transaction.execute("START TRANSACTION;")
+        if self.cursor:
+            self.cursor.execute("START TRANSACTION;")
 
     def rollback_full(self):
-        if self.transaction:
-            self.transaction.execute("ROLLBACK;")
+        if self.cursor:
+            self.cursor.execute("ROLLBACK;")
 
     def checkpoint_rollback(self, checkpoint):
         self.cursor.execute(f"ROLLBACK TO SAVEPOINT {checkpoint};")
@@ -238,8 +231,8 @@ class NewConnector:
         return checkpoint
 
     def commit(self):
-        if self.transaction:
-            self.transaction.execute("COMMIT;")
+        if self.cursor:
+            self.cursor.execute("COMMIT;")
 
     def close(self):
         print("Closing Connector...")
