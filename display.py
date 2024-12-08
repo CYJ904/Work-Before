@@ -965,10 +965,11 @@ else:
                     "data": None,
                     "result":None
                     }
-            information['query'] = f"SELECT seller_city, COUNT(*) AS seller_count FROM ({base_query['body']}) AS subquery GROUP BY seller_city ORDER BY seller_count DESC LIMIT 20;"
+            # information['query'] = f"SELECT seller_city, COUNT(*) AS seller_count FROM ({base_query['body']}) AS subquery GROUP BY seller_city ORDER BY seller_count DESC LIMIT 20;"
+            information['query'] = f"SELECT seller_city, COUNT(*) AS seller_count FROM ({base_query['body']}) AS subquery GROUP BY seller_city ORDER BY seller_count DESC ;"
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
-            information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
+            information['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(information["index"]["x"],sort=None), y = information['index']['y'])
             querys.append(information)
 
             information = {
@@ -982,7 +983,7 @@ else:
             information['query'] = f"SELECT seller_state, COUNT(*) AS seller_count FROM ({base_query['body']}) AS subquery GROUP BY seller_state ORDER BY seller_count DESC;"
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
-            information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
+            information['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(information["index"]["x"],sort=None), y = information['index']['y'])
             querys.append(information)
             sleep(0.1)
         if "customers" in used_table:
@@ -994,10 +995,11 @@ else:
                     "data": None,
                     "result":None
                     }
-            information['query'] = f"SELECT customer_city, COUNT(*) AS customer_count FROM ({base_query['body']}) AS subquery GROUP BY customer_city ORDER BY customer_count DESC LIMIT 20;"
+            # information['query'] = f"SELECT customer_city, COUNT(*) AS customer_count FROM ({base_query['body']}) AS subquery GROUP BY customer_city ORDER BY customer_count DESC LIMIT 20;"
+            information['query'] = f"SELECT customer_city, COUNT(*) AS customer_count FROM ({base_query['body']}) AS subquery GROUP BY customer_city ORDER BY customer_count DESC ;"
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
-            information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
+            information['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(information["index"]["x"],sort=None), y = information['index']['y'])
             querys.append(information)
 
             information = {
@@ -1011,7 +1013,7 @@ else:
             information['query'] = f"SELECT customer_state, COUNT(*) AS customer_count FROM ({base_query['body']}) AS subquery GROUP BY customer_state ORDER BY customer_count DESC;"
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
-            information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
+            information['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(information["index"]["x"],sort=None), y = information['index']['y'])
             querys.append(information)
             sleep(0.1)
         if ("customers" in used_table) and ("order_items" in used_table):
@@ -1026,7 +1028,7 @@ else:
             information['query'] = f"SELECT seller_id, SUM(price + freight_value) AS total_sales FROM ({base_query['body']}) AS subquery GROUP BY seller_id ORDER BY total_sales DESC;"
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
-            information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
+            information['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(information["index"]["x"],sort=None), y = information['index']['y'])
             querys.append(information)
             sleep(0.1)
         if "orders" in used_table:
@@ -1042,7 +1044,7 @@ else:
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
             index = information['index']
-            information['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=index['color'], tooltip=index['tooltip'])
+            information['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=alt.Color(index['color'], sort=None), tooltip=index['tooltip'])
             querys.append(information)
             pass
             sleep(0.1)
@@ -1058,7 +1060,7 @@ else:
             information['query'] = f"SELECT payment_type, SUM(payment_value) AS total_payment_value FROM ({base_query['body']}) AS subquery GROUP BY payment_type ORDER BY total_payment_value DESC;"
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
-            information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
+            information['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(information["index"]["x"],sort=None), y = information['index']['y'])
             querys.append(information)
 
             sleep(0.1)
@@ -1075,7 +1077,7 @@ else:
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
             index = information['index']
-            information['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=index['color'], tooltip=index['tooltip'])
+            information['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=alt.Color(index['color'], sort=None), tooltip=index['tooltip'])
             querys.append(information)
 
             sleep(0.1)
@@ -1092,7 +1094,7 @@ else:
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
             index = information['index']
-            information['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=index['color'], tooltip=index['tooltip'])
+            information['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=alt.Color(index['color'], sort=None), tooltip=index['tooltip'])
             querys.append(information)
             pass
             sleep(0.1)
@@ -1108,7 +1110,7 @@ else:
             # information['query'] = f"SELECT order_id, SUM(price) AS total_price FROM ({base_query['body']}) GROUP BY order_id;"
             # information['data'] = base_query['value']
             # value = st.session_state.connector.query(information['query'], information['data'])
-            # information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
+            # information['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(information["index"]["x"],sort=None), y = information['index']['y'])
             # querys.append(information)
 
 
@@ -1120,10 +1122,11 @@ else:
                     "data": None,
                     "result":None
                     }
-            information['query'] = f" SELECT order_id, SUM(freight_value) AS total_freight FROM ({base_query['body']}) AS subquery GROUP BY order_id ORDER BY total_freight DESC LIMIT 100;"
+            # information['query'] = f" SELECT order_id, SUM(freight_value) AS total_freight FROM ({base_query['body']}) AS subquery GROUP BY order_id ORDER BY total_freight DESC LIMIT 100;"
+            information['query'] = f" SELECT order_id, SUM(freight_value) AS total_freight FROM ({base_query['body']}) AS subquery GROUP BY order_id ORDER BY total_freight DESC ;"
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
-            information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
+            information['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(information["index"]["x"],sort=None), y = information['index']['y'])
             querys.append(information)
 
             pass
@@ -1137,11 +1140,11 @@ else:
                     "data": None,
                     "result":None
                     }
-            information['query'] = f" SELECT review_score, COUNT(*) AS review_count FROM ({base_query['body']}) AS subquery GROUP BY review_score ORDER BY review_score;"
+            information['query'] = f" SELECT review_score, COUNT(*) AS review_count FROM ({base_query['body']}) AS subquery GROUP BY review_score ORDER BY review_score DESC;"
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
             index = information['index']
-            information['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=index['color'], tooltip=index['tooltip'])
+            information['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=alt.Color(index['color'], sort=None), tooltip=index['tooltip'])
             querys.append(information)
 
             sleep(0.1)
@@ -1157,7 +1160,7 @@ else:
         #     information['query'] = f" SELECT product_category_name, AVG(review_score) AS avg_review_score FROM ({base_query['body']}) AS subquery GROUP BY product_category_name ORDER BY avg_review_score DESC;"
         #     information['data'] = base_query['value']
         #     value = st.session_state.connector.query(information['query'], information['data'])
-        #     information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
+        #     information['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(information["index"]["x"],sort=None), y = information['index']['y'])
         #     querys.append(information)
 
         #     sleep(0.1)
@@ -1170,7 +1173,7 @@ else:
                     "data": None,
                     "result":None
                     }
-            information['query'] = f" SELECT customer_city, COUNT(order_id) AS total_orders FROM ({base_query['body']}) AS subquery GROUP BY customer_city;"
+            information['query'] = f" SELECT customer_city, COUNT(order_id) AS total_orders FROM ({base_query['body']}) AS subquery GROUP BY customer_city ORDER BY total_orders DESC;"
             information['data'] = base_query['value']
             value = st.session_state.connector.query(information['query'], information['data'])
             information['result'] = alt.Chart(value).mark_bar().encode(x=information["index"]["x"], y = information['index']['y'])
@@ -1193,11 +1196,11 @@ else:
             for info in st.session_state.display:
                 if info['type'] == "bar":
                     value = st.session_state.connector.query(info['query'],info['data'])
-                    info['result'] = alt.Chart(value).mark_bar().encode(x=info["index"]["x"], y =info['index']['y'])
+                    info['result'] = alt.Chart(value).mark_bar().encode(x=alt.X(info["index"]["x"],sort=None), y =info['index']['y'])
                 elif info['type'] == "pie":
                     value = st.session_state.connector.query(info['query'],info['data'])
                     index =info['index']
-                    info['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=index['color'], tooltip=index['tooltip'])
+                    info['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=alt.Color(index['color'], sort=None), tooltip=index['tooltip'])
 
             for info in st.session_state.display:
                 if info['title']: right_column.write(info['title'])
