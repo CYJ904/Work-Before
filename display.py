@@ -1200,6 +1200,7 @@ else:
                     info['result'] = alt.Chart(value).mark_arc().encode(theta=index['theta'],color=index['color'], tooltip=index['tooltip'])
 
             for info in st.session_state.display:
+                if info['title']: right_column.write(info['title'])
                 right_column.altair_chart(info['result'], use_container_width=True)
 
             st.session_state.data_changed = False
@@ -1210,6 +1211,7 @@ else:
             right_column.write("Please click submit for search data or choose more tables.")
         else:
             for info in st.session_state.display:
+                if info['title']: right_column.write(info['title'])
                 right_column.altair_chart(info['result'], use_container_width=True)
             pass
 
