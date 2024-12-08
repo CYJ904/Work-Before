@@ -37,7 +37,7 @@ class NewConnector:
             self.relations[name] = self.database_config['foreign_keys'][name]
 
     def connect(self):
-        print("Start Connection")
+        # print("Start Connection")
         try:
             self.connection = mariadb.connect(
                 user=self.user,
@@ -47,7 +47,7 @@ class NewConnector:
                 database=self.database
             )
             self.cursor = self.connection.cursor()
-            print("Connected to MariaDB successfully.")
+            # print("Connected to MariaDB successfully.")
         except mariadb.Error as e:
             print(f"Error connecting to MariaDB: {e}")
             raise
@@ -100,8 +100,6 @@ class NewConnector:
         result = self.cursor.fetchall()
         columns = [desc[0] for desc in self.cursor.description]
         df = pd.DataFrame(result, columns=columns)
-        print(sql_query)
-        print(df)
         return df
 
     def execute(self, sql_query, value):
@@ -121,7 +119,7 @@ class NewConnector:
 
     def checkpoint_add(self, checkpoint):
         self.cursor.execute(f"SAVEPOINT {checkpoint};")
-        print(f"savepoint {checkpoint} executed")
+        # print(f"savepoint {checkpoint} executed")
         return checkpoint
 
     def commit(self):
@@ -129,7 +127,7 @@ class NewConnector:
             self.cursor.execute("COMMIT;")
 
     def close(self):
-        print("Closing Connector...")
+        # print("Closing Connector...")
         if self.cursor:
             self.cursor.close()
         if self.connection:

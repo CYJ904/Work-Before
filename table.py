@@ -9,65 +9,13 @@ import utils
 from datetime import datetime, timedelta
 import itertools
 import string
-import encrypt
 
 
 st.set_page_config(layout="wide", initial_sidebar_state="auto")
-# with open('config.yaml', 'r') as file:
-#     database_config = yaml.safe_load(file)
 
-# Load encrypted information
-# if "secret" not in st.session_state:
-#     password = st.text_input("Please input password for encryption", value=None, type="password")
-#     try:
-#         st.session_state.secret = encrypt.decrypt_yaml('secret.yaml.enc', 'secret.yaml.salt', password)
-#         st.rerun()
-#     except FileNotFoundError as e:
-#         st.error("Encryption file or salt file not fond. Please check your file paths or regenerate it.")
-#         st.exception(e)
-#         pass
-#     except ValueError as e:
-#         st.error("Decryption failed. The password might be incorrect or the files are corrupted.")
-#         st.exception(e)
-#     except AttributeError as e:
-#         st.stop()
-#     except Exception as e:
-#         st.error("An unexpected error occurred during decryption.")
-#         st.exception(e)
-
-if "counter" not in st.session_state:
-    st.session_state.counter = [0,0]
-
-if "stack" not in st.session_state:
-    st.session_state.stack = []
-
-if "connector" not in st.session_state:
-    # connection = st.connection('source', type='sql')
-    # st.session_state.connector = utils.Connector(connection)
-    # connection = st.connection('source', type='sql')
-    secret = st.session_state.secret
-    st.session_state.connector = utils.NewConnector(user=secret['user_name'], password = secret['user_password'], host=secret['host'], port=secret['port'], database=secret['database'])
-    st.session_state.connector.start_transaction()
-
-if "query" not in st.session_state:
-    st.session_state.query = {}
-    st.session_state.query['body'] = ""
-    st.session_state.query['value'] = tuple()
-
-if "result" not in st.session_state:
-    st.session_state.result = ""
-
-if "data_changed" not in st.session_state:
-    st.session_state.data_changed = False
-
-
-if "map" not in st.session_state:
-    with open('config.yaml', 'r') as file:
-        st.session_state.map = yaml.safe_load(file)
 
 database_config = st.session_state.map
 
-connector = st.session_state.connector
 
 left_column, right_column = st.columns(spec=config.page_split, gap="small", vertical_alignment="top")
 # avoid overall scrolling
@@ -634,20 +582,13 @@ else:
                 if is_added:
                     break 
 
-            # counter = 0
-            # problem = []
-            # for i in used_table_full:
-            #     if i in added_tables:
-            #         counter += 1
-            #     else:
-            #         problem.append(i)
+            counter = 0
+            for i in used_table_full:
+                if i in added_tables:
+                    counter += 1
             if counter == len(used_table_full):
                 all_added=True
 
-            # loop_limit -= 1
-            # if loop_limit == 0:
-            #     break
-                
                 
 
 
@@ -1020,7 +961,6 @@ else:
         else:
             st.session_state.result = st.session_state.connector.query(st.session_state.query['body'], st.session_state.query['value'])
             right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width = True)
-            st.session_state.counter[0] += 1
 
             st.session_state.data_changed = False
 
@@ -1028,15 +968,9 @@ else:
         if st.session_state.query['body'] == "":
             right_column.write("Please click submit for search data.")
         else:
-            st.session_state.counter[1] += 1
             # st.session_state.result = st.session_state.connector.query(st.session_state.query['body'])
             right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width  = True)
             # right_column.dataframe(connector.query(st.session_state.query['body']), height = config.table_height, use_container_width  = True)
-
-# Solving behavior: Add 
-
-# st.dialog
-# st.tab
 
 
 @st.dialog("Add", width="large")
@@ -1469,7 +1403,7 @@ def add_data():
         for key in keys:
             if "_id" in key:
                 if (data[key]['input'] is not None):
-                    print(key, data[key]['input'], type(data[key]['input']))
+                    # print(key, data[key]['input'], type(data[key]['input']))
                     if len(data[key]['input'].strip()) != 32:
                         st.error(f"You must make {key} 32 characters long")
                         disable_button = True
@@ -1539,7 +1473,7 @@ def add_data():
         key_side = key_side[:-2]
         value_side = value_side[:-2]
         final_query = f"INSERT INTO {data['name']} ({key_side}) VALUES ({value_side});"
-        st.session_state.stack.append(connector.checkpoint_add(prepared_name))
+        st.session_state.stack.append(st.session_state.connector.checkpoint_add(prepared_name))
 
         st.session_state.connector.execute(final_query, value_side_submit)
         st.session_state.data_changed = True
@@ -1932,7 +1866,7 @@ def delete_data():
 
     dialog_submit = st.button("Submit", disabled=disable_button)
     if dialog_submit:
-        st.session_state.stack.append(connector.checkpoint_add(prepared_name))
+        st.session_state.stack.append(st.session_state.connector.checkpoint_add(prepared_name))
         st.session_state.connector.execute(delete_query, delete_query_value)
         st.session_state.data_changed = True
         st.rerun(scope="fragment")
@@ -2569,7 +2503,7 @@ def update_data():
 
         final_query = f"UPDATE {data['name']} SET {changed_side} WHERE {original_side};"
         final_query_value = changed_side_value + original_side_value
-        st.session_state.stack.append(connector.checkpoint_add(prepared_name))
+        st.session_state.stack.append(st.session_state.connector.checkpoint_add(prepared_name))
         st.session_state.connector.execute(final_query, final_query_value)
         st.session_state.data_changed = True
         st.rerun(scope="fragment")
