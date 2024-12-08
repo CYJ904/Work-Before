@@ -10,11 +10,31 @@ import utils
 from datetime import datetime, timedelta
 import itertools
 import string
+import encrypt
 
 
 st.set_page_config(layout="wide", initial_sidebar_state="auto")
 # with open('config.yaml', 'r') as file:
 #     database_config = yaml.safe_load(file)
+
+# Load encrypted information
+# if "secret" not in st.session_state:
+#     password = st.text_input("Please input password for encryption", value=None, type="password")
+#     try:
+#         st.session_state.secret = encrypt.decrypt_yaml('secret.yaml.enc', 'secret.yaml.salt', password)
+#         st.rerun()
+#     except FileNotFoundError as e:
+#         st.error("Encryption file or salt file not fond. Please check your file paths or regenerate it.")
+#         st.exception(e)
+#         pass
+#     except ValueError as e:
+#         st.error("Decryption failed. The password might be incorrect or the files are corrupted.")
+#         st.exception(e)
+#     except AttributeError as e:
+#         st.stop()
+#     except Exception as e:
+#         st.error("An unexpected error occurred during decryption.")
+#         st.exception(e)
 
 if "counter" not in st.session_state:
     st.session_state.counter = [0,0]
@@ -26,11 +46,14 @@ if "connector" not in st.session_state:
     # connection = st.connection('source', type='sql')
     # st.session_state.connector = utils.Connector(connection)
     # connection = st.connection('source', type='sql')
-    st.session_state.connector = utils.NewConnector()
+    secret = st.session_state.secret
+    st.session_state.connector = utils.NewConnector(user=secret['user_name'], password = secret['user_password'], host=secret['host'], port=secret['port'], database=secret['database'])
     st.session_state.connector.start_transaction()
 
 if "query" not in st.session_state:
-    st.session_state.query = ""
+    st.session_state.query = {}
+    st.session_state.query['body'] = ""
+    st.session_state.query['value'] = tuple()
 
 if "result" not in st.session_state:
     st.session_state.result = ""
@@ -447,86 +470,88 @@ for name, status in zip(database_config['table_name'], table_list_checkbox):
 if len(used_table) == 0:
     right_column.write("You haven't select any table yet.")
 else:
-    query = ""
+    query = {}
+    query['body'] = ""
+    query['value'] = tuple()
     # SELECT
     # IF geolocation in used_table, create new table customer_geolocation and sellers_geolocation
     # for replacing the city and state in the customer or sellers with the city and state in geolcoation
-    query += "SELECT "
+    query['body'] += "SELECT "
     if 'geolocation' in used_table:
         if len(used_table) == 1:
-            query += "geolocation.geolocation_zip_code_prefix AS geolocation_zip_code_prefix, "
-            query += "geolocation.geolocation_lat AS geolocation_lat, "
-            query += "geolocation.geolocation_city AS geolocation_city, "
-            query += "geolocation.geolocation_state AS geolocation_state, "
+            query['body'] += "geolocation.geolocation_zip_code_prefix AS geolocation_zip_code_prefix, "
+            query['body'] += "geolocation.geolocation_lat AS geolocation_lat, "
+            query['body'] += "geolocation.geolocation_city AS geolocation_city, "
+            query['body'] += "geolocation.geolocation_state AS geolocation_state, "
     if 'customers' in used_table:
-        query += "customer.customer_id AS customer_id, "
-        query += "customer.customer_unique_id AS customer_unique_id, "
-        query += "customer.customer_zip_code_prefix AS customer_zip_code_prefix, "
+        query['body'] += "customer.customer_id AS customer_id, "
+        query['body'] += "customer.customer_unique_id AS customer_unique_id, "
+        query['body'] += "customer.customer_zip_code_prefix AS customer_zip_code_prefix, "
         if 'geolocation' not in used_table:
-            query += "customer.customer_city AS customer_city, "
-            query += "customer.customer_state AS customer_state, "
+            query['body'] += "customer.customer_city AS customer_city, "
+            query['body'] += "customer.customer_state AS customer_state, "
         else:
-            query += "customer.customer_city AS customer_city, "
-            query += "customer.customer_state AS customer_state, "
-            query += "customer.customer_lat AS customer_latitude, "
-            query += "customer.customer_lng AS customer_longitude, "
+            query['body'] += "customer.customer_city AS customer_city, "
+            query['body'] += "customer.customer_state AS customer_state, "
+            query['body'] += "customer.customer_lat AS customer_latitude, "
+            query['body'] += "customer.customer_lng AS customer_longitude, "
     if 'sellers' in used_table:
-        query += "seller.seller_id AS seller_id, "
-        query += "seller.seller_zip_code_prefix AS seller_zip_code_prefix, "
+        query['body'] += "seller.seller_id AS seller_id, "
+        query['body'] += "seller.seller_zip_code_prefix AS seller_zip_code_prefix, "
         if 'geolocation' not in used_table:
-            query += "seller.seller_city AS seller_city, "
-            query += "seller.seller_state AS seller_state, "
+            query['body'] += "seller.seller_city AS seller_city, "
+            query['body'] += "seller.seller_state AS seller_state, "
         else:
-            query += "seller.seller_city AS seller_city, "
-            query += "seller.seller_state AS seller_state, "
-            query += "seller.seller_lat AS seller_latitude, "
-            query += "seller.seller_lng AS seller_longitude, "
+            query['body'] += "seller.seller_city AS seller_city, "
+            query['body'] += "seller.seller_state AS seller_state, "
+            query['body'] += "seller.seller_lat AS seller_latitude, "
+            query['body'] += "seller.seller_lng AS seller_longitude, "
     if 'orders' in used_table:
-        query += "orders.order_id AS order_id, "
-        query += "orders.customer_id AS order_customer_id, "
-        query += "orders.order_status AS order_status, "
-        query += "orders.order_purchase_timestamp AS order_purchase_timestamp, "
-        query += "orders.order_approved_at AS order_approved_at, "
-        query += "orders.order_delivered_carrier_date AS order_delivered_carrier_date, "
-        query += "orders.order_delivered_customer_date AS order_delivered_customer_date, "
-        query += "orders.order_estimated_delivery_date AS order_estimated_delivery_date, "
+        query['body'] += "orders.order_id AS order_id, "
+        query['body'] += "orders.customer_id AS order_customer_id, "
+        query['body'] += "orders.order_status AS order_status, "
+        query['body'] += "orders.order_purchase_timestamp AS order_purchase_timestamp, "
+        query['body'] += "orders.order_approved_at AS order_approved_at, "
+        query['body'] += "orders.order_delivered_carrier_date AS order_delivered_carrier_date, "
+        query['body'] += "orders.order_delivered_customer_date AS order_delivered_customer_date, "
+        query['body'] += "orders.order_estimated_delivery_date AS order_estimated_delivery_date, "
     if "order_payments" in used_table:
-        query += "order_payments.order_id AS order_payments_order_id, "
-        query += "order_payments.payment_sequential AS payment_sequential, "
-        query += "order_payments.payment_type AS payment_type, "
-        query += "order_payments.payment_installments AS payment_installments, "
-        query += "order_payments.payment_value AS payment_value, "
+        query['body'] += "order_payments.order_id AS order_payments_order_id, "
+        query['body'] += "order_payments.payment_sequential AS payment_sequential, "
+        query['body'] += "order_payments.payment_type AS payment_type, "
+        query['body'] += "order_payments.payment_installments AS payment_installments, "
+        query['body'] += "order_payments.payment_value AS payment_value, "
     if 'products' in used_table:
-        query += "products.product_id AS product_id, "
-        query += "products.product_category_name AS product_category_name, "
-        query += "products.product_name_length AS product_name_length, "
-        query += "products.product_description_length AS product_description_length, "
-        query += "products.product_photos_qty AS product_photos_qty, "
-        query += "products.product_weight_g AS product_weight_g, "
-        query += "products.product_length_cm AS product_length_cm, "
-        query += "products.product_height_cm AS product_height_cm, "
-        query += "products.product_width_cm AS product_width_cm, "
+        query['body'] += "products.product_id AS product_id, "
+        query['body'] += "products.product_category_name AS product_category_name, "
+        query['body'] += "products.product_name_length AS product_name_length, "
+        query['body'] += "products.product_description_length AS product_description_length, "
+        query['body'] += "products.product_photos_qty AS product_photos_qty, "
+        query['body'] += "products.product_weight_g AS product_weight_g, "
+        query['body'] += "products.product_length_cm AS product_length_cm, "
+        query['body'] += "products.product_height_cm AS product_height_cm, "
+        query['body'] += "products.product_width_cm AS product_width_cm, "
     if 'order_items' in used_table:
-        query += "order_items.order_id AS order_items_order_id, "
-        query += "order_items.order_item_id AS order_item_id, "
-        query += "order_items.product_id AS order_items_product_id, "
-        query += "order_items.seller_id AS order_items_seller_id, "
-        query += "order_items.shipping_limit_date AS shipping_limit_date, "
-        query += "order_items.price AS price, "
-        query += "order_items.freight_value AS freight_value, "
+        query['body'] += "order_items.order_id AS order_items_order_id, "
+        query['body'] += "order_items.order_item_id AS order_item_id, "
+        query['body'] += "order_items.product_id AS order_items_product_id, "
+        query['body'] += "order_items.seller_id AS order_items_seller_id, "
+        query['body'] += "order_items.shipping_limit_date AS shipping_limit_date, "
+        query['body'] += "order_items.price AS price, "
+        query['body'] += "order_items.freight_value AS freight_value, "
     if 'order_reviews' in used_table:
-        query += "order_reviews.review_id AS review_id, "
-        query += "order_reviews.order_id AS order_reviews_order_id, "
-        query += "order_reviews.review_score AS review_score, "
-        query += "order_reviews.review_creation_date AS review_creation_date, "
+        query['body'] += "order_reviews.review_id AS review_id, "
+        query['body'] += "order_reviews.order_id AS order_reviews_order_id, "
+        query['body'] += "order_reviews.review_score AS review_score, "
+        query['body'] += "order_reviews.review_creation_date AS review_creation_date, "
 
     # clean last comma
-    query = query[:-2]
-    query += " "
+    query['body'] = query['body'][:-2]
+    query['body'] += " "
 
 
     # FROM
-    query += "FROM "
+    query['body'] += "FROM "
     # Add missed table back for building the bridge
     missed_tables = []
     used_table_full = used_table.copy()
@@ -547,14 +572,14 @@ else:
 
     if len(used_table_full) == 1:
         tmp_table = f"{used_table_full[0]}" if used_table_full[0] not in special[1:] else f"{used_table_full[0]} AS {used_table_full[0][:-1]}"
-        query += tmp_table
-        query += " "
+        query['body'] += tmp_table
+        query['body'] += " "
     elif (len(used_table_full) == 2): 
         if 'geolocation' in used_table_full:
             if 'sellers' in used_table_full:
-                query += "(SELECT geolocation.geolocation_zip_code_prefix AS seller_zip_code_prefix, geolocation.geolocation_city AS seller_city, geolocation.geolocation_state AS seller_state, geolocation.geolocation_lat AS seller_lat, geolocation.geolocation_lng AS seller_lng, sellers.seller_id AS seller_id FROM geolocation INNER JOIN sellers ON geolocation.geolocation_zip_code_prefix = sellers.seller_zip_code_prefix) AS seller "
+                query['body'] += "(SELECT geolocation.geolocation_zip_code_prefix AS seller_zip_code_prefix, geolocation.geolocation_city AS seller_city, geolocation.geolocation_state AS seller_state, geolocation.geolocation_lat AS seller_lat, geolocation.geolocation_lng AS seller_lng, sellers.seller_id AS seller_id FROM geolocation INNER JOIN sellers ON geolocation.geolocation_zip_code_prefix = sellers.seller_zip_code_prefix) AS seller "
             elif 'customers' in used_table_full:
-                query += " (SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation INNER JOIN customers ON geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer "
+                query['body'] += " (SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation INNER JOIN customers ON geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer "
         else:
             first = f"{used_table_full[0]}" if used_table_full[0] not in special else f"{used_table_full[0]} AS {used_table_full[0][:-1]}"
             first_table = f"{used_table_full[0]}" if used_table_full[0] not in special else f"{used_table_full[0][:-1]}"
@@ -562,20 +587,20 @@ else:
             second_table = f"{used_table_full[1]}" if used_table_full[1] not in special else f"{used_table_full[1][:-1]}"
             joint_point = database_config['foreign_keys'][used_table_full[0]][used_table_full[1]]
 
-            query += f"{first} INNER JOIN {second} ON {first_table}.{joint_point['local']} = {second_table}.{joint_point['remote']} "
+            query['body'] += f"{first} INNER JOIN {second} ON {first_table}.{joint_point['local']} = {second_table}.{joint_point['remote']} "
     else:
         if "sellers" in used_table_full and "geolocation" in used_table_full:
-            query += "(SELECT geolocation.geolocation_zip_code_prefix AS seller_zip_code_prefix, geolocation.geolocation_city AS seller_city, geolocation.geolocation_state AS seller_state, geolocation.geolocation_lat AS seller_lat, geolocation.geolocation_lng AS seller_lng, sellers.seller_id AS seller_id FROM geolocation INNER JOIN sellers ON geolocation.geolocation_zip_code_prefix = sellers.seller_zip_code_prefix) AS seller "
+            query['body'] += "(SELECT geolocation.geolocation_zip_code_prefix AS seller_zip_code_prefix, geolocation.geolocation_city AS seller_city, geolocation.geolocation_state AS seller_state, geolocation.geolocation_lat AS seller_lat, geolocation.geolocation_lng AS seller_lng, sellers.seller_id AS seller_id FROM geolocation INNER JOIN sellers ON geolocation.geolocation_zip_code_prefix = sellers.seller_zip_code_prefix) AS seller "
             added_tables.append('sellers')
             added_tables.append('geolocation')
         elif "customers" in used_table_full and "geolocation" in used_table_full:
-            query += " (SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation INNER JOIN customers ON geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer "
+            query['body'] += " (SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation INNER JOIN customers ON geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer "
             added_tables.append('customers')
             added_tables.append('geolocation')
         else:
             first_table = used_table_full[0]
             start = f"{first_table}" if first_table not in special else f"{first_table} AS {first_table[:-1]}"
-            query += f"{start} "
+            query['body'] += f"{start} "
             added_tables.append(first_table)
 
         # print(added_tables, used_table, used_table_full)
@@ -590,12 +615,10 @@ else:
                         bridge = utils.bridge_tables(i, j)
                         if len(bridge) == 0 and j != "geolocation":
                             if i == "customers" and "geolocation" in added_tables:
-                                query += "INNER JOIN (SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation INNER JOIN customers ON geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer "
-                                # new_table = f"{i}" if i not in special else f"{i} AS {i[:-1]}"
-                                # added_table  = f"{j}" if j not in special else f"{j} AS {j[:-1]}"
+                                query['body'] += "INNER JOIN (SELECT geolocation.geolocation_zip_code_prefix AS customer_zip_code_prefix, geolocation.geolocation_city AS customer_city, geolocation.geolocation_state AS customer_state, geolocation.geolocation_lat AS customer_lat, geolocation.geolocation_lng AS customer_lng, customers.customer_id AS customer_id, customers.customer_unique_id AS customer_unique_id FROM geolocation INNER JOIN customers ON geolocation.geolocation_zip_code_prefix = customers.customer_zip_code_prefix) AS customer "
                                 joint_point = database_config['foreign_keys'][i][j]
 
-                                query += f"ON customer.{joint_point['local']} = {j}.{joint_point['remote']} "
+                                query['body'] += f"ON customer.{joint_point['local']} = {j}.{joint_point['remote']} "
                                 added_tables.append(i)
                             else:
                                 new_long = f"{i}" if i not in special else f"{i} AS {i[:-1]}"
@@ -603,7 +626,7 @@ else:
                                 added_long = f"{j}" if j not in special else f"{j} AS {j[:-1]}"
                                 added_table  = f"{j}" if j not in special else f"{j[:-1]}"
                                 joint_point = database_config['foreign_keys'][i][j]
-                                query += f"INNER JOIN {new_long} ON {new_table}.{joint_point['local']} = {added_table}.{joint_point['remote']} "
+                                query['body'] += f"INNER JOIN {new_long} ON {new_table}.{joint_point['local']} = {added_table}.{joint_point['remote']} "
                                 added_tables.append(i)
                             is_added = True
                             break 
@@ -612,27 +635,26 @@ else:
                 if is_added:
                     break 
 
-            counter = 0
-            problem = []
-            for i in used_table_full:
-                if i in added_tables:
-                    counter += 1
-                else:
-                    problem.append(i)
-            # print(counter, len(used_table_full), problem, used_table_full)
+            # counter = 0
+            # problem = []
+            # for i in used_table_full:
+            #     if i in added_tables:
+            #         counter += 1
+            #     else:
+            #         problem.append(i)
             if counter == len(used_table_full):
                 all_added=True
 
-            loop_limit -= 1
-            if loop_limit == 0:
-                break
+            # loop_limit -= 1
+            # if loop_limit == 0:
+            #     break
                 
                 
 
 
 
     # WHERE 
-    query += "WHERE " 
+    query['body'] += "WHERE " 
 
             
     # Add filter
@@ -641,297 +663,376 @@ else:
             if "customers" not in used_table_full and "sellers" not in used_table_full:
                 key = used_filters[name]['geolocation_zip_code_prefix']
                 if key is not None:
-                    query += f"geolocation.geolocation_zip_code_prefix = '{key}' AND "
+                    query['body'] += f"geolocation.geolocation_zip_code_prefix = ? AND "
+                    query['value'] += (key,)
                 key = used_filters[name]['geolocation_lat']
                 if key is not None:
                     if key[0] <= key[1]:
-                        query += f"geolocation.geolocation_lat BETWEEN {key[0]} AND {key[1]} AND "
+                        query['body'] += f"geolocation.geolocation_lat BETWEEN ? AND ? AND "
+                        query['value'] += (key[0], key[1])
                     elif key[0] > key[1]:
-                        query += f"geolocation.geolocation_lat BETWEEN {key[1]} AND {key[0]} AND "
+                        query['body'] += f"geolocation.geolocation_lat BETWEEN ? AND ? AND "
+                        query['value'] += (key[1], key[0])
                 key = used_filters[name]['geolocation_lng']
                 if key is not None:
                     if key[0] <= key[1]:
-                        query += f"geolocation.geolocation_lng BETWEEN {key[0]} AND {key[1]} AND "
+                        query['body'] += f"geolocation.geolocation_lng BETWEEN ? AND ? AND "
+                        query['value'] += (key[0], key[1])
                     elif key[0] > key[1]:
-                        query += f"geolocation.geolocation_lng BETWEEN {key[1]} AND {key[0]} AND "
+                        query['body'] += f"geolocation.geolocation_lng BETWEEN ? AND ? AND "
+                        query['value'] += (key[1], key[0])
                 key = used_filters[name]['geolocation_city']
                 if key is not None:
-                    query += f"geolocation.geolocation_city = '{key}' AND "
+                    query['body'] += f"geolocation.geolocation_city = ? AND "
+                    query['value'] += (key,)
                 key = used_filters[name]['geolocation_state']
                 if key is not None:
-                    query += f"geolocation.geolocation_state = '{key}' AND "
+                    query['body'] += f"geolocation.geolocation_state = ? AND "
+                    query['value'] += (key,)
             else:
                 if "customers" in used_table_full:
                     key = used_filters[name]['geolocation_zip_code_prefix']
                     if key is not None:
-                        query += f"customer.customer_zip_code_prefix = '{key}' AND "
+                        query['body'] += f"customer.customer_zip_code_prefix = ? AND "
+                        query['value'] += (key,)
                     key = used_filters[name]['geolocation_lat']
                     if key is not None:
                         if key[0] <= key[1]:
-                            query += f"customer.customer_lat BETWEEN {key[0]} AND {key[1]} AND "
+                            query['body'] += f"customer.customer_lat BETWEEN ? AND ? AND "
+                            query['value'] += (key[0], key[1])
                         elif key[0] > key[1]:
-                            query += f"customer.customer_lat BETWEEN {key[1]} AND {key[0]} AND "
+                            query['body'] += f"customer.customer_lat BETWEEN ? AND ? AND "
+                            query['value'] += (key[1], key[0])
                     key = used_filters[name]['geolocation_lng']
                     if key is not None:
                         if key[0] <= key[1]:
-                            query += f"customer.customer_lng BETWEEN {key[0]} AND {key[1]} AND "
+                            query['body'] += f"customer.customer_lng BETWEEN ? AND ? AND "
+                            query['value'] += (key[0], key[1])
                         elif key[0] > key[1]:
-                            query += f"customer.customer_lng BETWEEN {key[1]} AND {key[0]} AND "
+                            query['body'] += f"customer.customer_lng BETWEEN ? AND ? AND "
+                            query['value'] += (key[1], key[0])
                     key = used_filters[name]['geolocation_city']
                     if key is not None:
-                        query += f"customer.customer_city = '{key}' AND "
+                        query['body'] += f"customer.customer_city = ? AND "
+                        query['value'] += (key,)
                     key = used_filters[name]['geolocation_state']
                     if key is not None:
-                        query += f"customer.customer_state = '{key}' AND "
+                        query['body'] += f"customer.customer_state = ? AND "
+                        query['value'] += (key,)
                 if "sellers" in used_table_full:
                     key = used_filters[name]['geolocation_zip_code_prefix']
                     if key is not None:
-                        query += f"seller.seller_zip_code_prefix = '{key}' AND "
+                        query['body'] += f"seller.seller_zip_code_prefix = ? AND "
+                        query['value'] += (key,)
                     key = used_filters[name]['geolocation_lat']
                     if key is not None:
                         if key[0] <= key[1]:
-                            query += f"seller.seller_lat BETWEEN {key[0]} AND {key[1]} AND "
+                            query['body'] += f"seller.seller_lat BETWEEN ? AND ? AND "
+                            query['value'] += (key[0], key[1])
                         elif key[0] > key[1]:
-                            query += f"seller.seller_lat BETWEEN {key[1]} AND {key[0]} AND "
+                            query['body'] += f"seller.seller_lat BETWEEN ? AND ? AND "
+                            query['value'] += (key[1], key[0])
                     key = used_filters[name]['geolocation_lng']
                     if key is not None:
                         if key[0] <= key[1]:
-                            query += f"seller.seller_lng BETWEEN {key[0]} AND {key[1]} AND "
+                            query['body'] += f"seller.seller_lng BETWEEN ? AND ? AND "
+                            query['value'] += (key[0], key[1])
                         elif key[0] > key[1]:
-                            query += f"seller.seller_lng BETWEEN {key[1]} AND {key[0]} AND "
+                            query['body'] += f"seller.seller_lng BETWEEN ? AND ? AND "
+                            query['value'] += (key[1], key[0])
                     key = used_filters[name]['geolocation_city']
                     if key is not None:
-                        query += f"seller.seller_city = '{key}' AND "
+                        query['body'] += f"seller.seller_city = ? AND "
+                        query['value'] += (key,)
                     key = used_filters[name]['geolocation_state']
                     if key is not None:
-                        query += f"seller.seller_state = '{key}' AND "
+                        query['body'] += f"seller.seller_state = ? AND "
+                        query['value'] += (key,)
         if name == "sellers":
             key = used_filters[name]['seller_id']
             if key is not None:
-                query += f"seller.seller_id = '{key}' AND "
+                query['body'] += f"seller.seller_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]['seller_zip_code_prefix']
             if key is not None:
-                query += f"seller.seller_zip_code_prefix = '{key}' AND "
+                query['body'] += f"seller.seller_zip_code_prefix = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]['seller_city']
             if key is not None:
-                query += f"seller.seller_zip_code_prefix = '{key}' AND "
+                query['body'] += f"seller.seller_zip_code_prefix = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]['seller_state']
             if key is not None:
-                query += f"seller.seller_state = '{key}' AND "
+                query['body'] += f"seller.seller_state = ? AND "
+                query['value'] += (key,)
         if name == "customers":
             key = used_filters[name]['customer_id']
             if key is not None:
-                query += f"customer.customer_id = '{key}' AND "
+                query['body'] += f"customer.customer_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]['customer_unique_id']
             if key is not None:
-                query += f"customer.customer_unique_id = '{key}' AND "
+                query['body'] += f"customer.customer_unique_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]['customer_zip_code_prefix']
             if key is not None:
-                query += f"customer.customer_zip_code_prefix = '{key}' AND "
+                query['body'] += f"customer.customer_zip_code_prefix = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]['customer_city']
             if key is not None:
-                query += f"customer.customer_city = '{key}' AND "
+                query['body'] += f"customer.customer_city = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]['customer_state']
             if key is not None:
-                query += f"customer.customer_state = '{key}' AND "
+                query['body'] += f"customer.customer_state = ? AND "
+                query['value'] += (key,)
         if name == "orders":
             key = used_filters[name]['order_id']
             if key is not None:
-                query += f"orders.order_id = '{key}' AND "
+                query['body'] += f"orders.order_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["customer_id"]
             if key is not None:
-                query += f"orders.customer_id = '{key}' AND "
+                query['body'] += f"orders.customer_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["order_status"]
             if key is not None:
-                query += f"orders.order_status = '{key}' AND "
+                query['body'] += f"orders.order_status = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["order_purchase_timestamp"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"orders.order_purchase_timestamp BETWEEN '{key[0].strftime(config.timefstr['long'])}' AND '{key[1].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"orders.order_purchase_timestamp BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"orders.order_purchase_timestamp BETWEEN '{key[1].strftime(config.timefstr['long'])}' AND '{key[0].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"orders.order_purchase_timestamp BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["order_approved_at"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"orders.order_approved_at BETWEEN '{key[0].strftime(config.timefstr['long'])}' AND '{key[1].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"orders.order_approved_at BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"orders.order_approved_at BETWEEN '{key[1].strftime(config.timefstr['long'])}' AND '{key[0].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"orders.order_approved_at BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["order_delivered_carrier_date"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"orders.order_delivered_carrier_date BETWEEN '{key[0].strftime(config.timefstr['long'])}' AND '{key[1].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"orders.order_delivered_carrier_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"orders.order_delivered_carrier_date BETWEEN '{key[1].strftime(config.timefstr['long'])}' AND '{key[0].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"orders.order_delivered_carrier_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["order_delivered_customer_date"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"orders.order_delivered_customer_date BETWEEN '{key[0].strftime(config.timefstr['long'])}' AND '{key[1].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"orders.order_delivered_customer_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"orders.order_delivered_customer_date BETWEEN '{key[1].strftime(config.timefstr['long'])}' AND '{key[0].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"orders.order_delivered_customer_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["order_estimated_delivery_date"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"orders.order_estimated_delivery_date BETWEEN '{key[0].strftime(config.timefstr['short'])}' AND '{key[1].strftime(config.timefstr['short'])}' AND "
+                    query['body'] += f"orders.order_estimated_delivery_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"orders.order_estimated_delivery_date BETWEEN '{key[1].strftime(config.timefstr['short'])}' AND '{key[0].strftime(config.timefstr['short'])}' AND "
+                    query['body'] += f"orders.order_estimated_delivery_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
         if name == "order_payments":
             key = used_filters[name]["order_id"]
             if key is not None:
-                query += f"order_payments.order_id = '{key}' AND "
+                query['body'] += f"order_payments.order_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["payment_sequential"]
             if key is not None:
-                query += f"order_payments.payment_sequential = '{key}' AND "
+                query['body'] += f"order_payments.payment_sequential = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["payment_type"]
             if key is not None:
-                query += f"order_payments.payment_type = '{key}' AND "
+                query['body'] += f"order_payments.payment_type = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["payment_installments"]
             if key is not None:
-                query += f"order_payments.payment_installments = '{key}' AND "
+                query['body'] += f"order_payments.payment_installments = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["payment_value"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"order_payments.payment_value BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"order_payments.payment_value BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"order_payments.payment_value BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"order_payments.payment_value BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
         if name == "products":
             key = used_filters[name]["product_id"]
             if key is not None:
-                query += f"products.order_id = '{key}' AND "
+                query['body'] += f"products.order_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["product_category_name"]
             if key is not None:
-                query += f"products.product_category_name = '{key}' AND "
+                query['body'] += f"products.product_category_name = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["product_name_length"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"products.product_name_length BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"products.product_name_length BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"products.product_name_length BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"products.product_name_length BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["product_description_length"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"products.product_description_length BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"products.product_description_length BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"products.product_description_length BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"products.product_description_length BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["product_photos_qty"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"products.product_photos_qty BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"products.product_photos_qty BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"products.product_photos_qty BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"products.product_photos_qty BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["product_weight_g"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"products.product_photos_qty BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"products.product_photos_qty BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"products.product_photos_qty BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"products.product_photos_qty BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["product_length_cm"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"products.product_length_cm BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"products.product_length_cm BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"products.product_length_cm BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"products.product_length_cm BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["product_height_cm"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"products.product_height_cm BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"products.product_height_cm BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"products.product_height_cm BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"products.product_height_cm BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["product_width_cm"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"products.product_width_cm BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"products.product_width_cm BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"products.product_width_cm BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"products.product_width_cm BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
         if name == "order_items":
             key = used_filters[name]["order_id"]
             if key is not None:
-                query += f"order_items.order_id = '{key}' AND "
+                query['body'] += f"order_items.order_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["order_item_id"]
             if key is not None:
-                query += f"order_items.order_item_id = '{key}' AND "
+                query['body'] += f"order_items.order_item_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["product_id"]
             if key is not None:
-                query += f"order_items.product_id = '{key}' AND "
+                query['body'] += f"order_items.product_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["seller_id"]
             if key is not None:
-                query += f"order_items.seller_id = '{key}' AND "
+                query['body'] += f"order_items.seller_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["shipping_limit_date"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"order_items.shipping_limit_date BETWEEN '{key[0].strftime(config.timefstr['long'])}' AND '{key[1].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"order_items.shipping_limit_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"order_items.shipping_limit_date BETWEEN '{key[1].strftime(config.timefstr['long'])}' AND '{key[0].strftime(config.timefstr['long'])}' AND "
+                    query['body'] += f"order_items.shipping_limit_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["price"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"order_items.price BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"order_items.price BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[0] > key[1]:
-                    query += f"order_items.price BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"order_items.price BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["freight_value"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"order_items.freight_value BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"order_items.freight_value BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[0] > key[1]:
-                    query += f"order_items.freight_value BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"order_items.freight_value BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
         if name == "order_reviews":
             key = used_filters[name]["review_id"]
             if key is not None:
-                query += f"order_items.order_id = '{key}' AND "
+                query['body'] += f"order_items.order_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["order_id"]
             if key is not None:
-                query += f"order_items.order_id = '{key}' AND "
+                query['body'] += f"order_items.order_id = ? AND "
+                query['value'] += (key,)
             key = used_filters[name]["review_score"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"order_reviews.review_score BETWEEN {key[0]} AND {key[1]} AND "
+                    query['body'] += f"order_reviews.review_score BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[0] > key[1]:
-                    query += f"order_reviews.review_score BETWEEN {key[1]} AND {key[0]} AND "
+                    query['body'] += f"order_reviews.review_score BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
             key = used_filters[name]["review_creation_date"]
             if key is not None:
                 if key[0] <= key[1]:
-                    query += f"order_reviews.review_creation_date BETWEEN '{key[0].strftime(config.timefstr['short'])}' AND '{key[1].strftime(config.timefstr['short'])}' AND "
+                    query['body'] += f"order_reviews.review_creation_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[0], key[1])
                 elif key[1] < key[0]:
-                    query += f"order_reviews.review_creation_date BETWEEN '{key[1].strftime(config.timefstr['short'])}' AND '{key[0].strftime(config.timefstr['short'])}' AND "
+                    query['body'] += f"order_reviews.review_creation_date BETWEEN ? AND ? AND "
+                    query['value'] += (key[1], key[0])
 
     # clean last AND
-    # query = query[:-4]
-    if query.strip().endswith("AND"):
-        query = query.rstrip()[:-3].rstrip()
-    if query.strip().endswith("WHERE"):
-        query = query.rstrip()[:-5].rstrip()
+    # query['body'] = query['body'][:-4]
+    if query['body'].strip().endswith("AND"):
+        query['body'] = query['body'].rstrip()[:-3].rstrip()
+    if query['body'].strip().endswith("WHERE"):
+        query['body'] = query['body'].rstrip()[:-5].rstrip()
 
     # end
-    query += ";"
+    query['body'] += ";"
 
 
-    right_column.write(filter_area_buttom)
+    # right_column.write(filter_area_buttom)
     if filter_area_buttom:
-        result = st.session_state.connector.query(query)
+        result = st.session_state.connector.query(query['body'], query['value'])
         st.session_state.result = result
         st.session_state.query = query
 
-    right_column.write(st.session_state.data_changed)
+    # right_column.write(st.session_state.data_changed)
     if st.session_state.data_changed:
 
-        if st.session_state.query == "":
+        if st.session_state.query['body'] == "":
             right_column.write("Please click submit for search data.")
         else:
-            st.session_state.result = st.session_state.connector.query(st.session_state.query)
-            right_column.write(f"Checkpoint 1 triggered. {st.session_state.counter}")
+            st.session_state.result = st.session_state.connector.query(st.session_state.query['body'], st.session_state.query['value'])
             right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width = True)
             st.session_state.counter[0] += 1
 
             st.session_state.data_changed = False
 
     else:
-        if st.session_state.query == "":
+        if st.session_state.query['body'] == "":
             right_column.write("Please click submit for search data.")
         else:
             st.session_state.counter[1] += 1
-            right_column.write(f"Checkpoint 2 triggered. {st.session_state.counter}")
-            # st.session_state.result = st.session_state.connector.query(st.session_state.query)
+            # st.session_state.result = st.session_state.connector.query(st.session_state.query['body'])
             right_column.dataframe(st.session_state.result, height = config.table_height, use_container_width  = True)
-            # right_column.dataframe(connector.query(st.session_state.query), height = config.table_height, use_container_width  = True)
+            # right_column.dataframe(connector.query(st.session_state.query['body']), height = config.table_height, use_container_width  = True)
 
 # Solving behavior: Add 
 
@@ -1312,9 +1413,11 @@ def add_data():
             for idx in range(len(foreign_keys['local'])):
                 key = foreign_keys['local'][idx]
                 if data[key]['input'] is not None:
-                    foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['input']}';" # foreign keys are zip_code or xx_id
+                    foreign_query = {}
+                    foreign_query['body'] = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = ?;" # foreign keys are zip_code or xx_id
+                    foreign_query['value'] = (data[foreign_keys['local'][idx]]['input'],)
 
-                    foreign_result = st.session_state.connector.query(foreign_query)
+                    foreign_result = st.session_state.connector.query(foreign_query['body'], foreign_query['value'])
                     if len(foreign_result) == 0:
                         exist_foreign_key = False;
                         st.error(f"You didn't input an existed value about {foreign_keys['local'][idx]}")
@@ -1329,12 +1432,15 @@ def add_data():
             exist_primary_key = True
             st.error(f"Unique information you need to input: ({', '.join(primary_keys)})")
         else:
-            primary_query = f"SELECT * FROM {data['name']} WHERE "
+            primary_query = {}
+            primary_query['body'] = f"SELECT * FROM {data['name']} WHERE "
+            primary_query['value'] = tuple()
             for key in primary_keys:
-                primary_query += f"{key} = '{data[key]['input']}' AND "
-            primary_query = primary_query[:-4]
-            primary_query += ";"
-            primary_result = st.session_state.connector.query(primary_query)
+                primary_query['body'] += f"{key} = ? AND "
+                primary_query['value'] += (data[key]['input'],)
+            primary_query['body'] = primary_query['body'][:-4]
+            primary_query['body'] += ";"
+            primary_result = st.session_state.connector.query(primary_query['body'], primary_query['value'])
             if len(primary_result) != 0:
                 exist_primary_key = True
                 st.error(f"You input some value or value pair that exists in table {data['name']} over primary key ({', '.join(primary_keys)}). ")
@@ -1421,21 +1527,22 @@ def add_data():
     if dialog_submit:
         key_side = ""
         value_side = ""
+        value_side_submit = tuple()
         for key in keys:
-            tmp_key = key
             tmp_value = data[key]['input']
             if tmp_value is not None:
                 key_side += key
                 key_side += ", "
-                value_side += utils.input_preprocessing(tmp_value)
+                value_side += "?"
                 value_side += ", "
+                value_side_submit += (tmp_value,)
         # remove last comma
         key_side = key_side[:-2]
         value_side = value_side[:-2]
         final_query = f"INSERT INTO {data['name']} ({key_side}) VALUES ({value_side});"
         st.session_state.stack.append(connector.checkpoint_add(prepared_name))
 
-        st.session_state.connector.execute(final_query)
+        st.session_state.connector.execute(final_query, value_side_submit)
         st.session_state.data_changed = True
         st.rerun()
 
@@ -1786,6 +1893,7 @@ def delete_data():
             st.error(f"Please at least select value for ({', '.join(primary_keys)})")
         else:
             record_query = f"SELECT * FROM {data['name']} WHERE "
+            record_query_value = tuple()
             for key in keys:
                 value = data[key]['input']
                 if value is not None:
@@ -1793,26 +1901,29 @@ def delete_data():
                     if slice is None:
                         st.error(f"Meet an unexpected value {key}:{value}")
                     else:
-                        record_query += slice
+                        record_query += slice[0]
                         record_query += " AND "
+                        record_query_value += slice[1]
             record_query = record_query[:-4]
             record_query += ";"
 
-            record_result = st.session_state.connector.query(record_query)
-            # if len(record_result) == 0:
-            #     disable_button = True
-            #     st.error("Searched record doesn't exists with filters")
-            # else:
-            if True:
+            record_result = st.session_state.connector.query(record_query, record_query_value)
+            if len(record_result) == 0:
+                disable_button = True
+                st.error("Searched record doesn't exists with filters")
+            else:
+            # if True:
                 delete_query = f"DELETE FROM {data['name']} WHERE "
+                delete_query_value = tuple()
                 for key in primary_keys:
                     slice = utils.search_preprocessing(key, data[key]['input'])
                     # no protection for search exact ID only.
                     if slice is None:
                         disable_button = True
                         st.error("Error! Target primary key disappeared")
-                    delete_query += slice
+                    delete_query += slice[0]
                     delete_query += " AND "
+                    delete_query_value += slice[1]
                 # delete last end
                 delete_query = delete_query[:-4]
                 delete_query += ";"
@@ -1823,7 +1934,7 @@ def delete_data():
     dialog_submit = st.button("Submit", disabled=disable_button)
     if dialog_submit:
         st.session_state.stack.append(connector.checkpoint_add(prepared_name))
-        st.session_state.connector.execute(delete_query)
+        st.session_state.connector.execute(delete_query, delete_query_value)
         st.session_state.data_changed = True
         st.rerun(scope="fragment")
 
@@ -2295,6 +2406,7 @@ def update_data():
             left_column.error(f"Please at least select value for ({', '.join(primary_keys)})")
         else:
             record_query = f"SELECT * FROM {data['name']} WHERE "
+            record_query_value = tuple()
             for key in keys:
                 value = data[key]['input']
                 if value is not None:
@@ -2302,15 +2414,16 @@ def update_data():
                     if slice is None:
                         left_column.error(f"Meet an unexpected value {key}:{value}")
                     else:
-                        record_query += slice
+                        record_query += slice[0]
                         record_query += " AND "
+                        record_query_value += slice[1]
             record_query = record_query[:-4]
             record_query += ";"
 
-            record_result = st.session_state.connector.query(record_query)
-            # if len(record_result) == 0:
-            #     disable_button = True
-            #     left_column.error("Searched record doesn't exists with filters")
+            record_result = st.session_state.connector.query(record_query, record_query_value)
+            if len(record_result) == 0:
+                disable_button = True
+                left_column.error("Searched record doesn't exists with filters")
 
         # Over New data
         # search whether value for foreign key exists
@@ -2319,9 +2432,10 @@ def update_data():
             for idx in range(len(foreign_keys['local'])):
                 key = foreign_keys['local'][idx]
                 if data[key]['input'] is not None:
-                    foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = '{data[foreign_keys['local'][idx]]['changed']}';" # foreign keys are zip_code or xx_id
+                    foreign_query = f"SELECT * FROM {foreign_keys['table'][idx]} WHERE {foreign_keys['key'][idx]} = ?;" # foreign keys are zip_code or xx_id
+                    foreign_query_value = (data[foreign_keys['local'][idx]]['changed'],)
 
-                    foreign_result = st.session_state.connector.query(foreign_query)
+                    foreign_result = st.session_state.connector.query(foreign_query, foreign_query_value)
                     if len(foreign_result) == 0:
                         exist_foreign_key = False;
                         right_column.error(f"You didn't input an existed value about {foreign_keys['local'][idx]}")
@@ -2337,11 +2451,13 @@ def update_data():
             right_column.error(f"Unique information you need to input: ({', '.join(primary_keys)})")
         else:
             primary_query = f"SELECT * FROM {data['name']} WHERE "
+            primary_query_value = tuple()
             for key in primary_keys:
-                primary_query += f"{key} = '{data[key]['changed']}' AND "
+                primary_query += f"{key} = ? AND "
+                primary_query_value += (data[key]['changed'],)
             primary_query = primary_query[:-4]
             primary_query += ";"
-            primary_result = st.session_state.connector.query(primary_query)
+            primary_result = st.session_state.connector.query(primary_query, primary_query_value)
             if len(primary_result) != 0:
                 exist_primary_key = True
                 right_column.error(f"You input some value or value pair that exists in table {data['name']} over primary key ({', '.join(primary_keys)}). ")
@@ -2426,31 +2542,36 @@ def update_data():
     dialog_submit = st.button("Submit", disabled=disable_button)
     if dialog_submit:
         changed_side = ""
+        changed_side_value = tuple()
         for key in keys:
             tmp_key = key
             tmp_value = data[key]['changed']
             if tmp_value is not None:
-                changed_side += f"{tmp_key} = {utils.input_preprocessing(tmp_value)}, "
+                changed_side += f"{tmp_key} = ?, "
+                changed_side_value += utils.input_preprocessing(tmp_value)
         # remove last comma
         changed_side = changed_side[:-2]
 
         original_side = ""
+        original_side_value = tuple()
         for key in primary_keys:
             slice = utils.search_preprocessing(key, data[key]['input'])
             # no protection for search exact ID only.
             if slice is None:
                 disable_button = True
                 st.error("Error! Target primary key disappeared")
-            original_side += slice
+            original_side += slice[0]
             original_side += " AND "
+            original_side_value += slice[1]
         # delete last end
         original_side = original_side [:-4]
 
 
 
         final_query = f"UPDATE {data['name']} SET {changed_side} WHERE {original_side};"
+        final_query_value = changed_side_value + original_side_value
         st.session_state.stack.append(connector.checkpoint_add(prepared_name))
-        st.session_state.connector.execute(final_query)
+        st.session_state.connector.execute(final_query, final_query_value)
         st.session_state.data_changed = True
         st.rerun(scope="fragment")
 

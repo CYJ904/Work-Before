@@ -116,7 +116,7 @@ class Connector():
 
 
 class NewConnector:
-    def __init__(self, user='user_431', password='user_431', host='localhost', port=3306, database='source'):
+    def __init__(self, user, password, host, port, database):
         self.user = user
         self.password = password
         self.host = host
@@ -216,6 +216,7 @@ class NewConnector:
 
     def start_transaction(self):
         if self.cursor:
+            self.connection.autocommit = False
             self.cursor.execute("START TRANSACTION;")
 
     def rollback_full(self):
@@ -378,58 +379,73 @@ def generate_random_string(length=config.length):
 def input_preprocessing(input):
     # no process over string
     if isinstance(input, str):
-        return f"'{input}'"
+        # return f"'{input}'"
+        return (input,)
     elif isinstance(input, int):
-        return str(input)
+        # return str(input)
+        return (input,)
     elif isinstance(input, float):
-        return str(input)
+        # return str(input)
+        return (input,)
     elif isinstance(input, tuple):
         if input[1] is None:
             # short version
-            return f"'{input[0].strftime(config.timefstr['short'])}'"
+            # return f"'{input[0].strftime(config.timefstr['short'])}'"
+            return (input[0],)
         else:
             #  long version
             tmp = datetime.datetime.combine(input[0], input[1])
-            return f"'{tmp.strftime(config.timefstr['long'])}'"
+            # return f"'{tmp.strftime(config.timefstr['long'])}'"
+            return (tmp,)
 
 def search_preprocessing(name, input):
     # no process over string
-    if isinstance(input, str):
-        return f"{name} = '{input}'"
-    elif isinstance(input, int):
-        return f"{name} = {input}"
-    elif isinstance(input, float):
-        return f"{name} = {input}"
-    elif isinstance(input, tuple):
-        if isinstance(input[0], str):
-            if input[0] == input[1]:
-                return f"{name} = '{input[0]}'"
-            else:
-                return f"{name} BETWEEN '{input[0]}' AND '{input[1]}'"
-        elif isinstance(input[0], int):
-            if input[0] == input[1]:
-                return f"{name} = {input[0]}"
-            else:
-                return f"{name} BETWEEN {input[0]} AND {input[1]}"
-        elif isinstance(input[0], float):
-            if input[0] == input[1]:
-                return f"{name} = {input[0]}"
-            else:
-                return f"{name} BETWEEN {input[0]} AND {input[1]}"
-        elif isinstance(input[0], datetime.date):
-            if input[0] == input[1]:
-                return f"{name} = {input[0].strftime(config.timefstr['short'])}"
-            else:
-                return f"{name} BETWEEN {input[0].strftime(config.timefstr['short'])} AND {input[1].strftime(config.timefstr['short'])}"
-        elif isinstance(input[0], datetime.datetime):
-            if input[0] == input[1]:
-                return f"{name} = {input[0].strftime(config.timefstr['long'])}"
-            else:
-                return f"{name} BETWEEN {input[0].strftime(config.timefstr['long'])} AND {input[1].strftime(config.timefstr['long'])}"
-        else:
-            return None
+    query_side = ""
+    value_side = tuple()
+    if isinstance(input, tuple):
+        query_side = f"{name} BETWEEN ? AND ?"
+        value_side = (input[0], input[1])
     else:
-        return None
+        query_side = f"{name} = ?"
+        value_side = (input,)
+
+    return query_side, value_side
+    # if isinstance(input, str):
+    #     return f"{name} = '{input}'"
+    # elif isinstance(input, int):
+    #     return f"{name} = {input}"
+    # elif isinstance(input, float):
+    #     return f"{name} = {input}"
+    # elif isinstance(input, tuple):
+    #     if isinstance(input[0], str):
+    #         if input[0] == input[1]:
+    #             return f"{name} = '{input[0]}'"
+    #         else:
+    #             return f"{name} BETWEEN '{input[0]}' AND '{input[1]}'"
+    #     elif isinstance(input[0], int):
+    #         if input[0] == input[1]:
+    #             return f"{name} = {input[0]}"
+    #         else:
+    #             return f"{name} BETWEEN {input[0]} AND {input[1]}"
+    #     elif isinstance(input[0], float):
+    #         if input[0] == input[1]:
+    #             return f"{name} = {input[0]}"
+    #         else:
+    #             return f"{name} BETWEEN {input[0]} AND {input[1]}"
+    #     elif isinstance(input[0], datetime.date):
+    #         if input[0] == input[1]:
+    #             return f"{name} = {input[0].strftime(config.timefstr['short'])}"
+    #         else:
+    #             return f"{name} BETWEEN {input[0].strftime(config.timefstr['short'])} AND {input[1].strftime(config.timefstr['short'])}"
+    #     elif isinstance(input[0], datetime.datetime):
+    #         if input[0] == input[1]:
+    #             return f"{name} = {input[0].strftime(config.timefstr['long'])}"
+    #         else:
+    #             return f"{name} BETWEEN {input[0].strftime(config.timefstr['long'])} AND {input[1].strftime(config.timefstr['long'])}"
+    #     else:
+    #         return None
+    # else:
+    #     return None
 
 
 
