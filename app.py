@@ -18,7 +18,6 @@ if "secret" not in st.session_state:
         st.error("Encryption file or salt file not fond. Please check your file paths or regenerate it.")
         st.exception(e)
         st.stop()
-        pass
     except ValueError as e:
         st.error("Decryption failed. The password might be incorrect or the files are corrupted.")
         st.exception(e)
@@ -35,7 +34,7 @@ if "stack" not in st.session_state:
 
 if "connector" not in st.session_state:
     secret = st.session_state.secret
-    st.session_state.connector = utils.NewConnector(user=secret['user_name'], password = secret['user_password'], host=secret['host'], port=secret['port'], database=secret['database'])
+    st.session_state.connector = utils.Connector(user=secret['user_name'], password = secret['user_password'], host=secret['host'], port=secret['port'], database=secret['database'])
     st.session_state.connector.start_transaction()
 
 if "query" not in st.session_state:

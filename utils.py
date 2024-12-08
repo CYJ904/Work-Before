@@ -8,7 +8,7 @@ import pandas as pd
 import mariadb
 
 
-class NewConnector:
+class Connector:
     def __init__(self, user, password, host, port, database):
         self.user = user
         self.password = password
@@ -89,12 +89,6 @@ class NewConnector:
         result = self.cursor.fetchall()
         return pd.Series([row[0] for row in result])
 
-    # def get_tables(self):
-        # return self.table_names
-
-    # def get_keys(self, table_name):
-        # return self.table_keys.get(table_name, None)
-
     def query(self, sql_query, value):
         self.cursor.execute(sql_query, value)
         result = self.cursor.fetchall()
@@ -119,7 +113,6 @@ class NewConnector:
 
     def checkpoint_add(self, checkpoint):
         self.cursor.execute(f"SAVEPOINT {checkpoint};")
-        # print(f"savepoint {checkpoint} executed")
         return checkpoint
 
     def commit(self):
@@ -127,7 +120,6 @@ class NewConnector:
             self.cursor.execute("COMMIT;")
 
     def close(self):
-        # print("Closing Connector...")
         if self.cursor:
             self.cursor.close()
         if self.connection:
@@ -162,23 +154,17 @@ def generate_random_string(length=config.length):
 def input_preprocessing(input):
     # no process over string
     if isinstance(input, str):
-        # return f"'{input}'"
         return (input,)
     elif isinstance(input, int):
-        # return str(input)
         return (input,)
     elif isinstance(input, float):
-        # return str(input)
         return (input,)
     elif isinstance(input, tuple):
         if input[1] is None:
-            # short version
             # return f"'{input[0].strftime(config.timefstr['short'])}'"
             return (input[0],)
         else:
-            #  long version
             tmp = datetime.datetime.combine(input[0], input[1])
-            # return f"'{tmp.strftime(config.timefstr['long'])}'"
             return (tmp,)
 
 def search_preprocessing(name, input):
@@ -193,45 +179,3 @@ def search_preprocessing(name, input):
         value_side = (input,)
 
     return query_side, value_side
-    # if isinstance(input, str):
-    #     return f"{name} = '{input}'"
-    # elif isinstance(input, int):
-    #     return f"{name} = {input}"
-    # elif isinstance(input, float):
-    #     return f"{name} = {input}"
-    # elif isinstance(input, tuple):
-    #     if isinstance(input[0], str):
-    #         if input[0] == input[1]:
-    #             return f"{name} = '{input[0]}'"
-    #         else:
-    #             return f"{name} BETWEEN '{input[0]}' AND '{input[1]}'"
-    #     elif isinstance(input[0], int):
-    #         if input[0] == input[1]:
-    #             return f"{name} = {input[0]}"
-    #         else:
-    #             return f"{name} BETWEEN {input[0]} AND {input[1]}"
-    #     elif isinstance(input[0], float):
-    #         if input[0] == input[1]:
-    #             return f"{name} = {input[0]}"
-    #         else:
-    #             return f"{name} BETWEEN {input[0]} AND {input[1]}"
-    #     elif isinstance(input[0], datetime.date):
-    #         if input[0] == input[1]:
-    #             return f"{name} = {input[0].strftime(config.timefstr['short'])}"
-    #         else:
-    #             return f"{name} BETWEEN {input[0].strftime(config.timefstr['short'])} AND {input[1].strftime(config.timefstr['short'])}"
-    #     elif isinstance(input[0], datetime.datetime):
-    #         if input[0] == input[1]:
-    #             return f"{name} = {input[0].strftime(config.timefstr['long'])}"
-    #         else:
-    #             return f"{name} BETWEEN {input[0].strftime(config.timefstr['long'])} AND {input[1].strftime(config.timefstr['long'])}"
-    #     else:
-    #         return None
-    # else:
-    #     return None
-
-
-
-# connection = st.connection('source', type='sql')
-# connector = Connector(connection=connection)
-
