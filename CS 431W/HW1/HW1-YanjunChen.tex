@@ -1,0 +1,131 @@
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{geometry}
+\usepackage{pslatex}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{amsmath, amssymb}
+\usepackage{hyperref}
+\geometry{ margin = 1.0in }
+
+\pagestyle{fancy}
+\lhead{{\bf CMPSC 431W}}
+\chead{{\bf Database Management System}}
+\rhead{{\bf \today}}
+
+\setlength\parindent{0em}
+\setlength\parskip{8pt}
+
+\newcommand{\Paragraph}[1]{~\vspace*{-0.7\baselineskip}\\{\bf #1}}
+
+
+
+\begin{document}
+
+\begin{center}
+	{\LARGE \bf Assignment 1 Solution}
+	
+	{\large
+	Name: Yanjun Chen, PSU ID: yfc5289}
+\end{center}
+
+\section*{Part I. DBMS Overview}
+
+\Paragraph{1.
+	Include a DBMS in application stack: \\
+	- advantages: Efficient access; data integrity and security. \\
+	- disadvantages: applying DBMS will increase the overall complexity and requirement of the resources. \\
+	Manually implement the necessary data access features: \\
+	- advantages: Fewer resources \((\)compare with DBMS\()\); Flexibility. \\
+	-disadvantages: Less functionalities \((\)compare with DBMS\()\), which makes it less scalable. \\
+}
+
+\Paragraph{2.
+	It means the database maintains its structure after any data transactions. In another words, the database 
+	must still meets all defined rules of this database after any transactions.  \\
+} 
+
+\Paragraph{3.
+	This is an example of physical data independence. \\
+	Because for a user's persepective, they will saw another kind of layout of the data they want to see. Instead of 
+	how the data is structured in the database, such as an array or search tree, in a physical place. \\
+} 
+
+\Paragraph{4. 
+	The best type I choose will be VARCHAR. \\
+	Because first of all, the ZIP codes will not contain any dots inside. So it cannot be FLOAT. Secondly. as the ZIP code 
+	could start with number 0. It cannot be represented in INT. \\
+	By the rules of US ZIP codes, we can either use the 5-digit ZIP code such as 16801 or use the "ZIP + 4" 
+	version for more accuracy, which will also increase the length. For the case of US ZIP codes, as we didn't set any 
+	specific rules of which version we are going to use, I think VARCHAR could be a better choice.\\ 
+}
+\section*{Part II. Relational Model}
+
+\Paragraph{1.
+	- ID: INT\\
+	- FNAME: VARCHAR\((20)\)\\
+	- LNAME: VARCHAR\((20)\)\\
+	- MNAME: VARCHAR\((20)\)\\
+	- SSN: CHAR\((9)\)\\
+	- BDAY: VARCHAR\((10)\)\\
+	- DEPT: VARCHAR \((4)\)\\
+	- COLLEGE: VARCHAR\((20)\)\\
+	Notes: all domains are considered only by the data in the given table. And the relation name / table name would be "faculty". 
+}
+
+\Paragraph{2.
+	- \{SSN\}\\
+	- \{\text{ID}, \text{SSN}\}\\
+	- \{\text{ID}, \text{FNAME}, \text{LNAME}\}\\
+	- \{\text{FNAME}. \text{SSN}\}\\
+	- \{\text{LNAME}. \text{SSN}\}\\
+	NOTES: all sets are only suitable for the given table above. 
+} 
+
+\Paragraph{3.
+	- \{ID, LNAME\}\\
+	- \{\text{FNAME}, \text{LNAME}\}\\
+	- \{\text{LNAME}, \text{SSN}\}\\
+} 
+
+\Paragraph{4. 
+	The primary key I choose for this question would be \{FNAME, LNAME, SSN\}. \\
+	Because according to the given table, the major and most unique difference between the records is 
+	their SSN. They could have same other attributes such as ID, MNAME, DEPT and COLLEGE. But their SSN 
+	are unique. So I also think any kinds of 3-attribute sets with SSN would be fine.\\ 
+}
+
+\Paragraph{5. SQL statement: }
+\begin{verbatim}
+	INSERT INTO faculty (ID, FNAME, LNAME, MNAME, SSN, BDAY, DEPT, COLLEGE)
+	VALUES (15, 'John', 'Doe', NULL, '987364830', NULL, 'ECE', 'ENG');
+\end{verbatim}
+
+\Paragraph{6. SQL statement: }
+\begin{verbatim}
+	DELETE FROM faculty
+	WHERE COLLEGE = 'SCI';
+\end{verbatim}
+
+\Paragraph{7. SQL statement: }
+\begin{verbatim}
+	UPDATE faculty
+	SET BDAY = '12/11/2001'
+	WHERE FNAME = 'John' AND LNAME = 'Doe';
+\end{verbatim}
+
+\Paragraph{8. SQL statement: }
+\begin{verbatim}
+	ALTER TABLE faculty
+	DROP BDAY; 
+\end{verbatim}
+
+\Paragraph{9. 
+	The deletion of the \((\)ENG, CS\()\) record in the table "Departments" will not delete the rows 
+	in the "faculty" table. Instead, values for column "COLLEGE" and "DEPT" in the "faculty" table for 
+	rows which COLLEGE = 'ENG' and DEPT = 'CS' will be set to 'NULL'. \\
+}	
+
+
+\end{document}
